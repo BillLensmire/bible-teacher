@@ -230,6 +230,8 @@ def save_listening_progress(request):
         sermon_id = data.get('sermon_id')
         position = data.get('position')
         
+        print(f"Saving progress: fingerprint={fingerprint}, sermon_id={sermon_id}, position={position}")
+        
         if fingerprint and sermon_id and position is not None:
             try:
                 sermon = Sermon.objects.get(id=sermon_id)

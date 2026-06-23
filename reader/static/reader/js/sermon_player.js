@@ -5,31 +5,64 @@ class SermonPlayer {
         this.fingerprint = null;
         this.saveInterval = null;
         this.progressLoaded = false;
+        this.pendingPosition = null;
         
         this.init();
     }
 
     async init() {
-        this.fingerprint = await BrowserFingerprint.get();
-        await this.loadProgress();
         this.attachEventListeners();
         this.addSpeedControl();
+        this.fingerprint = await BrowserFingerprint.get();
+        console.log('[SermonPlayer] Fingerprint ready:', this.fingerprint.substring(0, 16) + '...');
+        await this.loadProgress();
     }
 
     async loadProgress() {
         if (this.progressLoaded) return;
         
         try {
+            console.log('[SermonPlayer] Loading progress for sermon', this.sermonId);
             const response = await fetch(`/api/progress/${this.sermonId}/?fingerprint=${this.fingerprint}`);
             const data = await response.json();
+            console.log('[SermonPlayer] Progress response:', data, 'readyState:', this.audio.readyState);
             
             if (data.status === 'success' && data.position > 0) {
-                this.audio.currentTime = data.position;
-                this.progressLoaded = true;
+                this.pendingPosition = data.position;
+                this.applyPendingPosition();
                 this.showResumeNotification(data.position);
+            } else {
+                console.log('[SermonPlayer] No saved progress or position is 0');
             }
         } catch (error) {
-            console.error('Failed to load progress:', error);
+            console.error('[SermonPlayer] Failed to load progress:', error);
+        }
+    }
+
+    applyPendingPosition() {
+        if (this.pendingPosition === null) return;
+        
+        console.log('[SermonPlayer] Applying position', this.pendingPosition, 'readyState:', this.audio.readyState);
+        
+        if (this.audio.readyState >= 2) {
+            this.audio.currentTime = this.pendingPosition;
+            const target = this.pendingPosition;
+            this.progressLoaded = true;
+            this.pendingPosition = null;
+            
+            setTimeout(() => {
+                if (this.audio.currentTime === 0 && target > 0) {
+                    console.log('[SermonPlayer] Browser reset to 0, retrying...');
+                    this.audio.currentTime = target;
+                    setTimeout(() => {
+                        console.log('[SermonPlayer] After retry, currentTime is now:', this.audio.currentTime);
+                    }, 100);
+                } else {
+                    console.log('[SermonPlayer] Position applied, currentTime is now:', this.audio.currentTime);
+                }
+            }, 200);
+        } else {
+            console.log('[SermonPlayer] Audio not ready, waiting for canplay...');
         }
     }
 
@@ -56,10 +89,8 @@ class SermonPlayer {
         this.audio.addEventListener('timeupdate', () => this.onTimeUpdate());
         this.audio.addEventListener('ended', () => this.onEnded());
         
-        this.audio.addEventListener('loadedmetadata', () => {
-            if (!this.progressLoaded) {
-                this.loadProgress();
-            }
+        this.audio.addEventListener('canplay', () => {
+            this.applyPendingPosition();
         });
     }
 
@@ -83,9 +114,16 @@ class SermonPlayer {
     startSavingProgress() {
         if (this.saveInterval) return;
         
-        this.saveInterval = setInterval(() => {
-            this.saveProgress();
-        }, 5000);
+        const doSave = () => {
+            if (this.fingerprint) {
+                this.saveProgress();
+            } else {
+                console.log('Waiting for fingerprint before saving...');
+            }
+        };
+        
+        doSave();
+        this.saveInterval = setInterval(doSave, 5000);
     }
 
     stopSavingProgress() {
@@ -97,11 +135,9 @@ class SermonPlayer {
 
     async saveProgress(position = null) {
         const currentPosition = position !== null ? position : Math.floor(this.audio.currentTime);
-        const csrfToken = this.getCookie('csrftoken');
         
-        if (!csrfToken) {
-            console.error('CSRF token not found! Cannot save progress.');
-            console.log('Available cookies:', document.cookie);
+        if (!this.fingerprint) {
+            console.error('Fingerprint not ready, cannot save progress');
             return;
         }
         
@@ -110,7 +146,6 @@ class SermonPlayer {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRFToken': csrfToken
                 },
                 body: JSON.stringify({
                     fingerprint: this.fingerprint,
@@ -247,9 +282,29 @@ class SermonPlayer {
     }
 }
 
+const sermonPlayers = [];
+
 document.addEventListener('DOMContentLoaded', () => {
     const audioElements = document.querySelectorAll('audio[data-sermon-id]');
     audioElements.forEach(audio => {
-        new SermonPlayer(audio);
+        sermonPlayers.push(new SermonPlayer(audio));
+    });
+});
+
+window.addEventListener('beforeunload', () => {
+    sermonPlayers.forEach(player => {
+        if (player.fingerprint && !player.audio.paused) {
+            navigator.sendBeacon(
+                '/api/progress/save/',
+                new Blob(
+                    [JSON.stringify({
+                        fingerprint: player.fingerprint,
+                        sermon_id: player.sermonId,
+                        position: Math.floor(player.audio.currentTime)
+                    })],
+                    { type: 'application/json' }
+                )
+            );
+        }
     });
 });
