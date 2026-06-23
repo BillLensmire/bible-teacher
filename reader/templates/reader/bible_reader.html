@@ -3,9 +3,9 @@
 {% block title %}Bible Study - Bible Teacher{% endblock %}
 
 {% block content %}
-<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 h-screen">
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:h-screen">
     <!-- Left Pane: Bible Text -->
-    <div class="bg-white rounded-lg shadow-lg p-6 overflow-y-auto" id="bible-text-pane">
+    <div class="bg-white rounded-lg shadow-lg p-6 lg:overflow-y-auto" id="bible-text-pane">
         <div class="mb-4">
             <h2 class="text-2xl font-bold mb-4">Bible Text</h2>
             <div class="flex flex-wrap gap-4 mb-4">
@@ -52,8 +52,8 @@
     </div>
 
     <!-- Right Pane: Notes -->
-    <div class="bg-white rounded-lg shadow-lg p-6 overflow-y-auto" id="notes-pane">
-        <div class="mb-4 flex justify-between items-center">
+    <div class="bg-white rounded-lg shadow-lg p-6 lg:overflow-y-auto" id="notes-pane">
+        <div class="mb-4 flex flex-wrap justify-between items-center gap-2">
             <h2 class="text-2xl font-bold">Notes</h2>
             <button id="toggle-notes-btn" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
                 Switch to <span id="note-type-label">Constable Notes</span>

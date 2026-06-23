@@ -20,9 +20,18 @@
                         <a href="{% url 'reader:sermon_notes_list' %}" class="hover:text-blue-200">Sermon Notes</a>
                     </div>
                 </div>
-                <div>
-                    <a href="/admin/" class="hover:text-blue-200">Admin</a>
+                <div class="flex items-center space-x-4">
+                    <a href="/admin/" class="hover:text-blue-200 hidden md:inline">Admin</a>
+                    <button id="mobile-menu-btn" class="md:hidden text-2xl leading-none" aria-label="Toggle menu">
+                        &#9776;
+                    </button>
                 </div>
+            </div>
+            <div id="mobile-menu" class="hidden md:hidden mt-3 space-y-1">
+                <a href="{% url 'reader:bible_reader' %}" class="block py-2 hover:text-blue-200">Bible Study</a>
+                <a href="{% url 'reader:sermon_list' %}" class="block py-2 hover:text-blue-200">Sermons</a>
+                <a href="{% url 'reader:sermon_notes_list' %}" class="block py-2 hover:text-blue-200">Sermon Notes</a>
+                <a href="/admin/" class="block py-2 hover:text-blue-200">Admin</a>
             </div>
         </div>
     </nav>
@@ -37,6 +46,11 @@
         </div>
     </footer>
 
+    <script>
+        document.getElementById('mobile-menu-btn').addEventListener('click', function() {
+            document.getElementById('mobile-menu').classList.toggle('hidden');
+        });
+    </script>
     {% block extra_js %}{% endblock %}
 </body>
 </html>
