@@ -68,6 +68,9 @@ class Sermon(models.Model):
         return f"{self.title} - {self.pastor.name}"
     
     def save(self, *args, **kwargs):
+        is_new = self.pk is None
+        super().save(*args, **kwargs)
+        
         if self.audio_file and not self.audio_duration:
             try:
                 audio = MutagenFile(self.audio_file.path)
@@ -75,10 +78,9 @@ class Sermon(models.Model):
                     duration_seconds = int(audio.info.length)
                     self.audio_duration = timedelta(seconds=duration_seconds)
                     logger.info(f"Extracted audio duration: {self.audio_duration} for {self.title}")
+                    super().save(update_fields=['audio_duration'])
             except Exception as e:
                 logger.warning(f"Could not extract audio duration for {self.title}: {e}")
-        
-        super().save(*args, **kwargs)
 
 
 class SermonPassage(models.Model):

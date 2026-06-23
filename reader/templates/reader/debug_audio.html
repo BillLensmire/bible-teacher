@@ -1,0 +1,154 @@
+{% extends 'reader/base.html' %}
+{% load static %}
+
+{% block title %}Audio Debug - Bible Teacher{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <h1 class="text-3xl font-bold mb-6">Audio Progress Tracking Debug</h1>
+    
+    <div class="bg-white rounded-lg shadow p-6 mb-6">
+        <h2 class="text-xl font-bold mb-4">System Status</h2>
+        <div id="status" class="space-y-2">
+            <p><strong>Fingerprint:</strong> <span id="fp-status">Loading...</span></p>
+            <p><strong>Scripts Loaded:</strong> <span id="scripts-status">Checking...</span></p>
+            <p><strong>Audio Elements:</strong> <span id="audio-count">0</span></p>
+        </div>
+    </div>
+    
+    <div class="bg-white rounded-lg shadow p-6 mb-6">
+        <h2 class="text-xl font-bold mb-4">Test Audio Player</h2>
+        <audio controls class="w-full mb-4" data-sermon-id="1">
+            <source src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" type="audio/mpeg">
+        </audio>
+        <div id="test-info" class="text-sm text-gray-600"></div>
+    </div>
+    
+    <div class="bg-white rounded-lg shadow p-6">
+        <h2 class="text-xl font-bold mb-4">Console Log</h2>
+        <div id="console-log" class="bg-gray-100 p-4 rounded font-mono text-sm max-h-96 overflow-y-auto"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+console.log('Loading fingerprint.js from:', '{% static "reader/js/fingerprint.js" %}');
+console.log('Loading sermon_player.js from:', '{% static "reader/js/sermon_player.js" %}');
+</script>
+<script type="text/javascript" src="{% static 'reader/js/fingerprint.js' %}?v={{ request.build_absolute_uri|slice:'-10:' }}" onerror="console.error('Failed to load fingerprint.js')"></script>
+<script type="text/javascript" src="{% static 'reader/js/sermon_player.js' %}?v={{ request.build_absolute_uri|slice:'-10:' }}" onerror="console.error('Failed to load sermon_player.js')"></script>
+<script>
+console.log('Scripts loaded. BrowserFingerprint available:', typeof BrowserFingerprint !== 'undefined');
+if (typeof BrowserFingerprint === 'undefined') {
+    console.error('BrowserFingerprint class failed to load!');
+    console.log('Attempting to fetch script directly...');
+    fetch('{% static "reader/js/fingerprint.js" %}')
+        .then(r => r.text())
+        .then(text => console.log('Script content length:', text.length, 'First 100 chars:', text.substring(0, 100)))
+        .catch(e => console.error('Fetch failed:', e));
+}
+</script>
+<script>
+const consoleLog = document.getElementById('console-log');
+
+function log(message, type = 'info') {
+    const timestamp = new Date().toLocaleTimeString();
+    const color = type === 'error' ? 'text-red-600' : type === 'success' ? 'text-green-600' : 'text-gray-800';
+    consoleLog.innerHTML += `<div class="${color}">[${timestamp}] ${message}</div>`;
+    consoleLog.scrollTop = consoleLog.scrollHeight;
+    console.log(message);
+}
+
+async function runDiagnostics() {
+    log('Starting diagnostics...');
+    
+    // Check if BrowserFingerprint is loaded
+    if (typeof BrowserFingerprint !== 'undefined') {
+        document.getElementById('scripts-status').textContent = '✅ Loaded';
+        document.getElementById('scripts-status').className = 'text-green-600';
+        log('BrowserFingerprint class loaded', 'success');
+        
+        try {
+            const fp = await BrowserFingerprint.get();
+            document.getElementById('fp-status').textContent = fp.substring(0, 16) + '...';
+            document.getElementById('fp-status').className = 'text-green-600 font-mono';
+            log(`Fingerprint generated: ${fp}`, 'success');
+        } catch (error) {
+            document.getElementById('fp-status').textContent = '❌ Error';
+            document.getElementById('fp-status').className = 'text-red-600';
+            log(`Fingerprint error: ${error}`, 'error');
+        }
+    } else {
+        document.getElementById('scripts-status').textContent = '❌ Not Loaded';
+        document.getElementById('scripts-status').className = 'text-red-600';
+        log('BrowserFingerprint class NOT loaded', 'error');
+    }
+    
+    // Check audio elements
+    const audioElements = document.querySelectorAll('audio[data-sermon-id]');
+    document.getElementById('audio-count').textContent = audioElements.length;
+    log(`Found ${audioElements.length} audio elements`);
+    
+    // Test API endpoints
+    log('Testing API endpoints...');
+    
+    try {
+        const fp = await BrowserFingerprint.get();
+        
+        // Test save progress
+        const saveResponse = await fetch('/api/progress/save/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({
+                fingerprint: fp,
+                sermon_id: 1,
+                position: 42
+            })
+        });
+        
+        if (saveResponse.ok) {
+            const saveData = await saveResponse.json();
+            log(`Save progress API: ${saveData.status}`, 'success');
+        } else {
+            log(`Save progress API failed: ${saveResponse.status}`, 'error');
+        }
+        
+        // Test get progress
+        const getResponse = await fetch(`/api/progress/1/?fingerprint=${fp}`);
+        if (getResponse.ok) {
+            const getData = await getResponse.json();
+            log(`Get progress API: ${getData.status}, position: ${getData.position}`, 'success');
+        } else {
+            log(`Get progress API failed: ${getResponse.status}`, 'error');
+        }
+        
+    } catch (error) {
+        log(`API test error: ${error}`, 'error');
+    }
+}
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+// Run diagnostics on page load
+document.addEventListener('DOMContentLoaded', () => {
+    setTimeout(runDiagnostics, 500);
+});
+</script>
+{% endblock %}

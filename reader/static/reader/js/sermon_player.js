@@ -97,13 +97,20 @@ class SermonPlayer {
 
     async saveProgress(position = null) {
         const currentPosition = position !== null ? position : Math.floor(this.audio.currentTime);
+        const csrfToken = this.getCookie('csrftoken');
+        
+        if (!csrfToken) {
+            console.error('CSRF token not found! Cannot save progress.');
+            console.log('Available cookies:', document.cookie);
+            return;
+        }
         
         try {
             const response = await fetch('/api/progress/save/', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRFToken': this.getCookie('csrftoken')
+                    'X-CSRFToken': csrfToken
                 },
                 body: JSON.stringify({
                     fingerprint: this.fingerprint,
@@ -112,9 +119,18 @@ class SermonPlayer {
                 })
             });
             
+            if (!response.ok) {
+                const text = await response.text();
+                console.error(`Save progress failed: ${response.status} ${response.statusText}`);
+                console.error('Response:', text.substring(0, 200));
+                return;
+            }
+            
             const data = await response.json();
             if (data.status !== 'success') {
-                console.error('Failed to save progress');
+                console.error('Failed to save progress:', data);
+            } else {
+                console.log(`Progress saved: ${currentPosition}s`);
             }
         } catch (error) {
             console.error('Error saving progress:', error);
@@ -219,6 +235,14 @@ class SermonPlayer {
                 }
             }
         }
+        
+        if (!cookieValue && name === 'csrftoken') {
+            const metaTag = document.querySelector('meta[name="csrf-token"]');
+            if (metaTag) {
+                cookieValue = metaTag.getAttribute('content');
+            }
+        }
+        
         return cookieValue;
     }
 }

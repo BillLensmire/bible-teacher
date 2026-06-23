@@ -128,6 +128,23 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'js/fingerprint.js' %}"></script>
-<script src="{% static 'js/sermon_player.js' %}"></script>
+<script>
+console.log('[Sermon List] Loading scripts...');
+console.log('[Sermon List] Fingerprint path:', '{% static "reader/js/fingerprint.js" %}');
+console.log('[Sermon List] Player path:', '{% static "reader/js/sermon_player.js" %}');
+</script>
+<script type="text/javascript" src="{% static 'reader/js/fingerprint.js' %}?v={% now 'U' %}" onerror="console.error('[Sermon List] Failed to load fingerprint.js')"></script>
+<script type="text/javascript" src="{% static 'reader/js/sermon_player.js' %}?v={% now 'U' %}" onerror="console.error('[Sermon List] Failed to load sermon_player.js')"></script>
+<script>
+console.log('[Sermon List] Scripts loaded');
+console.log('[Sermon List] BrowserFingerprint available:', typeof BrowserFingerprint !== 'undefined');
+console.log('[Sermon List] SermonPlayer available:', typeof SermonPlayer !== 'undefined');
+console.log('[Sermon List] Audio elements:', document.querySelectorAll('audio[data-sermon-id]').length);
+
+if (typeof BrowserFingerprint === 'undefined') {
+    console.error('[Sermon List] ERROR: BrowserFingerprint class not loaded!');
+    console.error('[Sermon List] Audio progress tracking will NOT work');
+    alert('Error: Audio tracking scripts failed to load. Please refresh the page (Ctrl+Shift+R)');
+}
+</script>
 {% endblock %}

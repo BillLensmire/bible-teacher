@@ -2,6 +2,8 @@ from django.shortcuts import render, get_object_or_404
 from django.http import JsonResponse
 from django.views.generic import ListView, DetailView
 from django.db.models import Q
+from django.views.decorators.csrf import ensure_csrf_cookie, csrf_exempt
+from django.utils.decorators import method_decorator
 from .models import (
     Sermon, SermonNotePDF, PastorNote, ExternalNote,
     Pastor, SermonGroup, ListeningProgress
@@ -10,6 +12,12 @@ from .services import BibleAPIService
 import logging
 
 logger = logging.getLogger(__name__)
+
+
+@ensure_csrf_cookie
+def debug_audio(request):
+    """Debug page for audio progress tracking"""
+    return render(request, 'reader/debug_audio.html')
 
 
 def bible_reader(request, book=None, chapter=None):
@@ -110,6 +118,7 @@ def toggle_note_type(request):
     return JsonResponse({'note_type': new_type})
 
 
+@method_decorator(ensure_csrf_cookie, name='dispatch')
 class SermonListView(ListView):
     """List view for all sermons with filtering"""
     model = Sermon
@@ -207,26 +216,35 @@ class SermonNotesListView(ListView):
         return context
 
 
+@csrf_exempt
 def save_listening_progress(request):
     """API endpoint to save sermon listening progress"""
     if request.method == 'POST':
         import json
-        data = json.loads(request.body)
+        try:
+            data = json.loads(request.body)
+        except json.JSONDecodeError:
+            return JsonResponse({'status': 'error', 'message': 'Invalid JSON'}, status=400)
         
         fingerprint = data.get('fingerprint')
         sermon_id = data.get('sermon_id')
         position = data.get('position')
         
         if fingerprint and sermon_id and position is not None:
-            sermon = get_object_or_404(Sermon, id=sermon_id)
+            try:
+                sermon = Sermon.objects.get(id=sermon_id)
+            except Sermon.DoesNotExist:
+                return JsonResponse({'status': 'error', 'message': f'Sermon {sermon_id} not found'}, status=404)
             progress, created = ListeningProgress.objects.update_or_create(
                 browser_fingerprint=fingerprint,
                 sermon=sermon,
                 defaults={'current_position': position}
             )
             return JsonResponse({'status': 'success', 'position': position})
+        
+        return JsonResponse({'status': 'error', 'message': 'Missing required fields'}, status=400)
     
-    return JsonResponse({'status': 'error'}, status=400)
+    return JsonResponse({'status': 'error', 'message': 'Method not allowed'}, status=405)
 
 
 def get_listening_progress(request, sermon_id):

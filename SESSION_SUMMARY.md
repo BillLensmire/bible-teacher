@@ -1,6 +1,6 @@
 # Implementation Session Summary
 
-## Date: June 22, 2026
+## Date: June 22-23, 2026
 
 ### Issues Fixed
 
@@ -8,6 +8,17 @@
 - **Issue**: `{% static %}` tag used without loading the static template library
 - **Fix**: Added `{% load static %}` after `{% extends %}` in `sermon_list.html`
 - **Location**: `reader/templates/reader/sermon_list.html:2`
+
+**2. Static Files Path Issue (June 23)**
+- **Issue**: JavaScript files in wrong directory structure
+- **Problem**: Files were in `reader/static/js/` instead of `reader/static/reader/js/`
+- **Fix**: Reorganized static files to follow Django convention
+- **Impact**: Audio progress tracking scripts weren't loading
+
+**3. Audio Duration Extraction Timing Issue (June 23)**
+- **Issue**: Trying to read audio file before it was saved to disk
+- **Fix**: Modified `Sermon.save()` to save file first, then extract duration
+- **Location**: `reader/models.py:70-83`
 
 ### Features Implemented
 
@@ -89,16 +100,21 @@ def save(self, *args, **kwargs):
 
 ## Files Created
 
-1. `/reader/static/js/fingerprint.js` - Browser fingerprinting class
-2. `/reader/static/js/sermon_player.js` - Enhanced audio player
-3. `/SESSION_SUMMARY.md` - This file
+1. `/reader/static/reader/js/fingerprint.js` - Browser fingerprinting class (moved to correct location)
+2. `/reader/static/reader/js/sermon_player.js` - Enhanced audio player (moved to correct location)
+3. `/reader/templates/reader/debug_audio.html` - Debug page for audio progress tracking
+4. `/SESSION_SUMMARY.md` - This file
+5. `/AUDIO_PROGRESS_TROUBLESHOOTING.md` - Comprehensive troubleshooting guide
 
 ## Files Modified
 
-1. `/reader/templates/reader/sermon_list.html` - Added `{% load static %}`
-2. `/reader/models.py` - Added audio duration auto-extraction
+1. `/reader/templates/reader/sermon_list.html` - Added `{% load static %}` and fixed static paths
+2. `/reader/models.py` - Fixed audio duration auto-extraction timing
 3. `/reader/admin.py` - Made audio_duration readonly
-4. `/IMPLEMENTATION_STATUS.md` - Updated progress
+4. `/reader/views.py` - Added debug_audio view
+5. `/reader/urls.py` - Added debug-audio URL pattern
+6. `/IMPLEMENTATION_STATUS.md` - Updated progress
+7. `/SESSION_SUMMARY.md` - This file (updated with troubleshooting info)
 
 ## Testing Checklist
 
