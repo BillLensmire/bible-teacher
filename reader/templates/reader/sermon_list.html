@@ -9,10 +9,10 @@
     
     <!-- Filters -->
     <div class="bg-white rounded-lg shadow p-4 mb-6">
-        <form method="get" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <form method="get" class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
                 <label class="block text-sm font-medium mb-1">Pastor</label>
-                <select name="pastor" class="w-full border rounded px-3 py-2">
+                <select name="pastor" class="w-full border rounded px-3 py-2" onchange="this.form.submit()">
                     <option value="">All Pastors</option>
                     {% for pastor in pastors %}
                     <option value="{{ pastor.id }}" {% if request.GET.pastor == pastor.id|stringformat:"s" %}selected{% endif %}>
@@ -24,7 +24,7 @@
             
             <div>
                 <label class="block text-sm font-medium mb-1">Group</label>
-                <select name="group" class="w-full border rounded px-3 py-2">
+                <select name="group" class="w-full border rounded px-3 py-2" onchange="this.form.submit()">
                     <option value="">All Groups</option>
                     {% for group in groups %}
                     <option value="{{ group.id }}" {% if request.GET.group == group.id|stringformat:"s" %}selected{% endif %}>
@@ -40,11 +40,6 @@
                        placeholder="Search sermons..." class="w-full border rounded px-3 py-2">
             </div>
             
-            <div class="flex items-end">
-                <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 w-full">
-                    Filter
-                </button>
-            </div>
         </form>
     </div>
     

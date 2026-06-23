@@ -9,7 +9,7 @@
         <div class="mb-4">
             <h2 class="text-2xl font-bold mb-4">Bible Text</h2>
             <div class="flex flex-wrap gap-4 mb-4">
-                <select id="version-selector" class="border rounded px-3 py-2">
+                <select id="version-selector" class="border rounded px-3 py-2" onchange="loadSelectedChapter()">
                     {% for version in versions %}
                         <option value="{{ version.id }}" {% if version.id == current_version %}selected{% endif %}>
                             {{ version.nameLocal|default:version.name }}
@@ -18,7 +18,7 @@
                         <option value="">No versions available</option>
                     {% endfor %}
                 </select>
-                <select id="book-selector" class="border rounded px-3 py-2">
+                <select id="book-selector" class="border rounded px-3 py-2" onchange="loadSelectedChapter()">
                     {% for book in books %}
                         <option value="{{ book.name }}" {% if book.name == current_book %}selected{% endif %}>
                             {{ book.name }}
@@ -28,10 +28,7 @@
                     {% endfor %}
                 </select>
                 <input type="number" id="chapter-selector" class="border rounded px-3 py-2 w-20" 
-                       value="{{ current_chapter|default:1 }}" min="1">
-                <button id="load-chapter-btn" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
-                    Load Chapter
-                </button>
+                       value="{{ current_chapter|default:1 }}" min="1" onchange="loadSelectedChapter()">
             </div>
         </div>
 
@@ -71,9 +68,6 @@
 <script>
 let currentChapter = null;
 let notesCache = {};
-
-// Load chapter button handler
-document.getElementById('load-chapter-btn').addEventListener('click', loadSelectedChapter);
 
 // Allow Enter key in chapter input
 document.getElementById('chapter-selector').addEventListener('keypress', (e) => {
