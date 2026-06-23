@@ -29,6 +29,7 @@ class SermonPlayer {
             
             if (data.status === 'success' && data.position > 0) {
                 this.pendingPosition = data.position;
+                this.updateProgressDisplay();
                 this.applyPendingPosition();
                 this.showResumeNotification(data.position);
             } else {
@@ -44,7 +45,7 @@ class SermonPlayer {
         
         console.log('[SermonPlayer] Applying position', this.pendingPosition, 'readyState:', this.audio.readyState);
         
-        if (this.audio.readyState >= 2) {
+        if (this.audio.readyState >= 1) {
             this.audio.currentTime = this.pendingPosition;
             const target = this.pendingPosition;
             this.progressLoaded = true;
@@ -90,6 +91,9 @@ class SermonPlayer {
         this.audio.addEventListener('ended', () => this.onEnded());
         
         this.audio.addEventListener('canplay', () => {
+            this.applyPendingPosition();
+        });
+        this.audio.addEventListener('loadedmetadata', () => {
             this.applyPendingPosition();
         });
     }
@@ -234,7 +238,12 @@ class SermonPlayer {
         const progressDiv = document.getElementById(`progress-${this.sermonId}`);
         if (!progressDiv) return;
         
-        const current = this.formatTime(this.audio.currentTime);
+        let displayTime = this.audio.currentTime;
+        if (displayTime === 0 && this.pendingPosition !== null) {
+            displayTime = this.pendingPosition;
+        }
+        
+        const current = this.formatTime(displayTime);
         const duration = this.formatTime(this.audio.duration);
         
         if (isFinite(this.audio.duration)) {
