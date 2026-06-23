@@ -1,0 +1,140 @@
+{% extends 'reader/base.html' %}
+
+{% block title %}Sermon Notes - Bible Teacher{% endblock %}
+
+{% block content %}
+<div class="mb-6">
+    <h1 class="text-3xl font-bold mb-4">Sermon Notes PDF Library</h1>
+    
+    <!-- Filters -->
+    <div class="bg-white rounded-lg shadow p-4 mb-6">
+        <form method="get" class="grid grid-cols-1 md:grid-cols-5 gap-4">
+            <div>
+                <label class="block text-sm font-medium mb-1">Pastor</label>
+                <select name="pastor" class="w-full border rounded px-3 py-2">
+                    <option value="">All Pastors</option>
+                    {% for pastor in pastors %}
+                    <option value="{{ pastor.id }}" {% if request.GET.pastor == pastor.id|stringformat:"s" %}selected{% endif %}>
+                        {{ pastor.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium mb-1">Group</label>
+                <select name="group" class="w-full border rounded px-3 py-2">
+                    <option value="">All Groups</option>
+                    {% for group in groups %}
+                    <option value="{{ group.id }}" {% if request.GET.group == group.id|stringformat:"s" %}selected{% endif %}>
+                        {{ group.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium mb-1">Type</label>
+                <select name="attached" class="w-full border rounded px-3 py-2">
+                    <option value="">All Notes</option>
+                    <option value="yes" {% if request.GET.attached == "yes" %}selected{% endif %}>Attached to Sermon</option>
+                    <option value="no" {% if request.GET.attached == "no" %}selected{% endif %}>Standalone</option>
+                </select>
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium mb-1">Search</label>
+                <input type="text" name="search" value="{{ request.GET.search }}" 
+                       placeholder="Search notes..." class="w-full border rounded px-3 py-2">
+            </div>
+            
+            <div class="flex items-end">
+                <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 w-full">
+                    Filter
+                </button>
+            </div>
+        </form>
+    </div>
+    
+    <!-- PDF List -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {% for pdf in pdfs %}
+        <div class="bg-white rounded-lg shadow p-6">
+            <h3 class="text-lg font-bold mb-2">{{ pdf.title }}</h3>
+            <p class="text-gray-600 text-sm mb-2">{{ pdf.pastor.name }}</p>
+            <p class="text-gray-500 text-sm mb-3">{{ pdf.date_created }}</p>
+            
+            {% if pdf.passages.all %}
+            <div class="mb-3">
+                <span class="text-xs font-medium">Passages:</span>
+                {% for passage in pdf.passages.all %}
+                <span class="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded mr-1">
+                    {{ passage.book }} {{ passage.chapter }}:{{ passage.verse_start }}{% if passage.verse_end %}-{{ passage.verse_end }}{% endif %}
+                </span>
+                {% endfor %}
+            </div>
+            {% endif %}
+            
+            {% if pdf.groups.all %}
+            <div class="mb-3">
+                {% for group in pdf.groups.all %}
+                <span class="inline-block bg-gray-200 text-gray-800 text-xs px-2 py-1 rounded mr-1">
+                    {{ group.name }}
+                </span>
+                {% endfor %}
+            </div>
+            {% endif %}
+            
+            {% if pdf.sermon %}
+            <div class="mb-3 text-sm">
+                <span class="text-gray-600">Linked to:</span>
+                <a href="{% url 'reader:sermon_list' %}?search={{ pdf.sermon.title }}" class="text-blue-600 hover:underline">
+                    {{ pdf.sermon.title }}
+                </a>
+            </div>
+            {% endif %}
+            
+            {% if pdf.description %}
+            <p class="text-gray-700 text-sm mb-3">{{ pdf.description|truncatewords:15 }}</p>
+            {% endif %}
+            
+            <div class="flex gap-2">
+                <a href="{{ pdf.pdf_file.url }}" target="_blank" 
+                   class="flex-1 bg-blue-600 text-white text-center px-4 py-2 rounded hover:bg-blue-700">
+                    View PDF
+                </a>
+                <a href="{{ pdf.pdf_file.url }}" download 
+                   class="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700">
+                    Download
+                </a>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-span-full bg-white rounded-lg shadow p-6 text-center text-gray-500">
+            No sermon notes found.
+        </div>
+        {% endfor %}
+    </div>
+    
+    <!-- Pagination -->
+    {% if is_paginated %}
+    <div class="mt-6 flex justify-center">
+        <nav class="flex space-x-2">
+            {% if page_obj.has_previous %}
+            <a href="?page=1" class="px-3 py-2 bg-white rounded border hover:bg-gray-50">First</a>
+            <a href="?page={{ page_obj.previous_page_number }}" class="px-3 py-2 bg-white rounded border hover:bg-gray-50">Previous</a>
+            {% endif %}
+            
+            <span class="px-3 py-2 bg-blue-600 text-white rounded">
+                Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+            </span>
+            
+            {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}" class="px-3 py-2 bg-white rounded border hover:bg-gray-50">Next</a>
+            <a href="?page={{ page_obj.paginator.num_pages }}" class="px-3 py-2 bg-white rounded border hover:bg-gray-50">Last</a>
+            {% endif %}
+        </nav>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

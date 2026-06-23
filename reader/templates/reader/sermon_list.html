@@ -1,0 +1,133 @@
+{% extends 'reader/base.html' %}
+{% load static %}
+
+{% block title %}Sermons - Bible Teacher{% endblock %}
+
+{% block content %}
+<div class="mb-6">
+    <h1 class="text-3xl font-bold mb-4">Sermon Audio Library</h1>
+    
+    <!-- Filters -->
+    <div class="bg-white rounded-lg shadow p-4 mb-6">
+        <form method="get" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div>
+                <label class="block text-sm font-medium mb-1">Pastor</label>
+                <select name="pastor" class="w-full border rounded px-3 py-2">
+                    <option value="">All Pastors</option>
+                    {% for pastor in pastors %}
+                    <option value="{{ pastor.id }}" {% if request.GET.pastor == pastor.id|stringformat:"s" %}selected{% endif %}>
+                        {{ pastor.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium mb-1">Group</label>
+                <select name="group" class="w-full border rounded px-3 py-2">
+                    <option value="">All Groups</option>
+                    {% for group in groups %}
+                    <option value="{{ group.id }}" {% if request.GET.group == group.id|stringformat:"s" %}selected{% endif %}>
+                        {{ group.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium mb-1">Search</label>
+                <input type="text" name="search" value="{{ request.GET.search }}" 
+                       placeholder="Search sermons..." class="w-full border rounded px-3 py-2">
+            </div>
+            
+            <div class="flex items-end">
+                <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 w-full">
+                    Filter
+                </button>
+            </div>
+        </form>
+    </div>
+    
+    <!-- Sermon List -->
+    <div class="space-y-4">
+        {% for sermon in sermons %}
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="flex justify-between items-start">
+                <div class="flex-1">
+                    <h3 class="text-xl font-bold mb-2">{{ sermon.title }}</h3>
+                    <p class="text-gray-600 mb-2">{{ sermon.pastor.name }} - {{ sermon.date_preached }}</p>
+                    
+                    {% if sermon.passages.all %}
+                    <div class="mb-2">
+                        <span class="text-sm font-medium">Passages:</span>
+                        {% for passage in sermon.passages.all %}
+                        <span class="inline-block bg-blue-100 text-blue-800 text-sm px-2 py-1 rounded mr-2">
+                            {{ passage.book }} {{ passage.chapter }}:{{ passage.verse_start }}{% if passage.verse_end %}-{{ passage.verse_end }}{% endif %}
+                        </span>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    
+                    {% if sermon.groups.all %}
+                    <div class="mb-2">
+                        {% for group in sermon.groups.all %}
+                        <span class="inline-block bg-gray-200 text-gray-800 text-xs px-2 py-1 rounded mr-1">
+                            {{ group.name }}
+                        </span>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    
+                    {% if sermon.description %}
+                    <p class="text-gray-700 mt-2">{{ sermon.description|truncatewords:30 }}</p>
+                    {% endif %}
+                </div>
+                
+                <div class="ml-4">
+                    {% if sermon.audio_duration %}
+                    <span class="text-sm text-gray-600">{{ sermon.audio_duration }}</span>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="mt-4">
+                <audio controls class="w-full" data-sermon-id="{{ sermon.id }}">
+                    <source src="{{ sermon.audio_file.url }}" type="audio/mpeg">
+                    Your browser does not support the audio element.
+                </audio>
+            </div>
+        </div>
+        {% empty %}
+        <div class="bg-white rounded-lg shadow p-6 text-center text-gray-500">
+            No sermons found.
+        </div>
+        {% endfor %}
+    </div>
+    
+    <!-- Pagination -->
+    {% if is_paginated %}
+    <div class="mt-6 flex justify-center">
+        <nav class="flex space-x-2">
+            {% if page_obj.has_previous %}
+            <a href="?page=1" class="px-3 py-2 bg-white rounded border hover:bg-gray-50">First</a>
+            <a href="?page={{ page_obj.previous_page_number }}" class="px-3 py-2 bg-white rounded border hover:bg-gray-50">Previous</a>
+            {% endif %}
+            
+            <span class="px-3 py-2 bg-blue-600 text-white rounded">
+                Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+            </span>
+            
+            {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}" class="px-3 py-2 bg-white rounded border hover:bg-gray-50">Next</a>
+            <a href="?page={{ page_obj.paginator.num_pages }}" class="px-3 py-2 bg-white rounded border hover:bg-gray-50">Last</a>
+            {% endif %}
+        </nav>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/fingerprint.js' %}"></script>
+<script src="{% static 'js/sermon_player.js' %}"></script>
+{% endblock %}

@@ -1,0 +1,21 @@
+<div class="notes-container">
+    <h3 class="text-lg font-bold mb-4">{{ book }} {{ chapter }}</h3>
+    
+    {% if notes %}
+        {% for note in notes %}
+        <div class="note-item mb-4 p-4 bg-gray-50 rounded">
+            <div class="note-reference font-semibold text-blue-600 mb-2">
+                Verse {{ note.verse_start }}{% if note.verse_end %}-{{ note.verse_end }}{% endif %}
+                {% if note_type == 'pastor' and note.sermon %}
+                    <span class="text-sm text-gray-600">- {{ note.sermon.pastor.name }}</span>
+                {% endif %}
+            </div>
+            <div class="note-text">
+                {{ note.note_text|safe }}
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <p class="text-gray-500">No notes available for this chapter.</p>
+    {% endif %}
+</div>

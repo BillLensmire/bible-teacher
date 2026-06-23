@@ -1,0 +1,221 @@
+{% extends 'reader/base.html' %}
+
+{% block title %}Bible Study - Bible Teacher{% endblock %}
+
+{% block content %}
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 h-screen">
+    <!-- Left Pane: Bible Text -->
+    <div class="bg-white rounded-lg shadow-lg p-6 overflow-y-auto" id="bible-text-pane">
+        <div class="mb-4">
+            <h2 class="text-2xl font-bold mb-4">Bible Text</h2>
+            <div class="flex flex-wrap gap-4 mb-4">
+                <select id="version-selector" class="border rounded px-3 py-2">
+                    {% for version in versions %}
+                        <option value="{{ version.id }}" {% if version.id == current_version %}selected{% endif %}>
+                            {{ version.nameLocal|default:version.name }}
+                        </option>
+                    {% empty %}
+                        <option value="">No versions available</option>
+                    {% endfor %}
+                </select>
+                <select id="book-selector" class="border rounded px-3 py-2">
+                    {% for book in books %}
+                        <option value="{{ book.name }}" {% if book.name == current_book %}selected{% endif %}>
+                            {{ book.name }}
+                        </option>
+                    {% empty %}
+                        <option value="">No books available</option>
+                    {% endfor %}
+                </select>
+                <input type="number" id="chapter-selector" class="border rounded px-3 py-2 w-20" 
+                       value="{{ current_chapter|default:1 }}" min="1">
+                <button id="load-chapter-btn" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                    Load Chapter
+                </button>
+            </div>
+        </div>
+
+        <div id="bible-content" class="prose max-w-none">
+            {% if chapter_content %}
+                <div class="chapter" data-book="{{ current_book }}" data-chapter="{{ current_chapter }}">
+                    {{ chapter_content.content|safe }}
+                </div>
+            {% else %}
+                <div class="text-gray-500 text-center py-8">
+                    <p class="mb-4">Select a book and chapter to begin reading.</p>
+                    {% if not versions %}
+                        <p class="text-red-600">Bible API key not configured. Please set BIBLE_API_KEY in settings.</p>
+                    {% endif %}
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Right Pane: Notes -->
+    <div class="bg-white rounded-lg shadow-lg p-6 overflow-y-auto" id="notes-pane">
+        <div class="mb-4 flex justify-between items-center">
+            <h2 class="text-2xl font-bold">Notes</h2>
+            <button id="toggle-notes-btn" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                Switch to <span id="note-type-label">Constable Notes</span>
+            </button>
+        </div>
+
+        <div id="notes-content" class="prose max-w-none">
+            <p class="text-gray-500">Notes will appear here as you scroll through the Bible text.</p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let currentChapter = null;
+let notesCache = {};
+
+// Load chapter button handler
+document.getElementById('load-chapter-btn').addEventListener('click', loadSelectedChapter);
+
+// Allow Enter key in chapter input
+document.getElementById('chapter-selector').addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+        loadSelectedChapter();
+    }
+});
+
+async function loadSelectedChapter() {
+    const book = document.getElementById('book-selector').value;
+    const chapter = document.getElementById('chapter-selector').value;
+    const version = document.getElementById('version-selector').value;
+    
+    if (!book || !chapter) {
+        alert('Please select a book and chapter');
+        return;
+    }
+    
+    const bibleContent = document.getElementById('bible-content');
+    bibleContent.innerHTML = '<div class="text-center py-8"><div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div><p class="mt-4 text-gray-600">Loading chapter...</p></div>';
+    
+    try {
+        const url = `/api/chapter/${encodeURIComponent(book)}/${chapter}/?version=${version}`;
+        const response = await fetch(url);
+        
+        if (!response.ok) {
+            throw new Error('Failed to load chapter');
+        }
+        
+        const data = await response.json();
+        
+        bibleContent.innerHTML = `
+            <div class="chapter" data-book="${data.book}" data-chapter="${data.chapter}">
+                ${data.content}
+            </div>
+        `;
+        
+        observeChapter();
+        loadNotesForChapter(data.book, data.chapter);
+        
+        window.history.pushState({}, '', `/${encodeURIComponent(book)}/${chapter}/`);
+    } catch (error) {
+        console.error('Error loading chapter:', error);
+        bibleContent.innerHTML = '<div class="text-red-600 text-center py-8">Failed to load chapter. Please try again.</div>';
+    }
+}
+
+function observeChapter() {
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting && entry.intersectionRatio > 0.5) {
+                const book = entry.target.dataset.book;
+                const chapter = entry.target.dataset.chapter;
+                loadNotesForChapter(book, chapter);
+            }
+        });
+    }, {
+        threshold: [0.5],
+        rootMargin: '0px'
+    });
+    
+    document.querySelectorAll('.chapter').forEach(chapter => {
+        observer.observe(chapter);
+    });
+}
+
+async function loadNotesForChapter(book, chapter) {
+    const key = `${book}-${chapter}`;
+    
+    if (currentChapter === key) return;
+    currentChapter = key;
+    
+    if (notesCache[key]) {
+        updateNotesPane(notesCache[key]);
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/notes/${encodeURIComponent(book)}/${chapter}/`);
+        const data = await response.json();
+        
+        notesCache[key] = data.html;
+        updateNotesPane(data.html);
+    } catch (error) {
+        console.error('Failed to load notes:', error);
+    }
+}
+
+function updateNotesPane(html) {
+    const notesContent = document.getElementById('notes-content');
+    notesContent.style.opacity = '0';
+    
+    setTimeout(() => {
+        notesContent.innerHTML = html;
+        notesContent.style.opacity = '1';
+    }, 200);
+}
+
+document.getElementById('toggle-notes-btn').addEventListener('click', async () => {
+    try {
+        const response = await fetch('/api/toggle-notes/', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken')
+            }
+        });
+        const data = await response.json();
+        
+        notesCache = {};
+        const label = document.getElementById('note-type-label');
+        label.textContent = data.note_type === 'pastor' ? 'Constable Notes' : 'Pastor Notes';
+        
+        if (currentChapter) {
+            const [book, chapter] = currentChapter.split('-');
+            currentChapter = null;
+            loadNotesForChapter(book, chapter);
+        }
+    } catch (error) {
+        console.error('Failed to toggle notes:', error);
+    }
+});
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+document.getElementById('notes-content').style.transition = 'opacity 0.2s ease-in-out';
+
+{% if current_book and current_chapter %}
+observeChapter();
+loadNotesForChapter('{{ current_book }}', '{{ current_chapter }}');
+{% endif %}
+</script>
+{% endblock %}
