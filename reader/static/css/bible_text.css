@@ -1,0 +1,161 @@
+/* Bible text formatting styles */
+
+#bible-content {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 1.125rem;
+    line-height: 1.7;
+    color: #1f2937;
+}
+
+#bible-content .chapter,
+#bible-content .chapter > div,
+#bible-content .chapter > p {
+    margin-bottom: 1rem;
+}
+
+/* Paragraph styling */
+#bible-content p,
+#bible-content .p {
+    margin-bottom: 1rem;
+    text-indent: 0;
+}
+
+/* Section headings */
+#bible-content h1,
+#bible-content h2,
+#bible-content h3,
+#bible-content h4,
+#bible-content h5,
+#bible-content h6,
+#bible-content .s,
+#bible-content .s1,
+#bible-content .s2,
+#bible-content .heading {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-weight: 700;
+    color: #111827;
+    margin-top: 1.5rem;
+    margin-bottom: 0.75rem;
+    font-size: 1.25rem;
+}
+
+/* Make verse containers inline so text flows in paragraphs */
+#bible-content .verse,
+#bible-content [data-verse-id],
+#bible-content span[data-verse-number] {
+    display: inline;
+}
+
+/* Verse numbers - general styling */
+#bible-content .v,
+#bible-content sup.v,
+#bible-content span.v,
+#bible-content .verse-number,
+#bible-content [class*="verse-number"],
+#bible-content sup {
+    font-weight: 700;
+    color: #111827;
+    font-size: 0.85em;
+    vertical-align: baseline;
+    margin-right: 0.15em;
+    margin-left: 0.1em;
+    line-height: 1;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* First verse number in a chapter - make it larger */
+#bible-content .chapter .v:first-of-type,
+#bible-content .chapter sup.v:first-of-type,
+#bible-content .chapter span.v:first-of-type,
+#bible-content .chapter p:first-child .v:first-of-type {
+    font-size: 1.5em;
+    font-weight: 700;
+    vertical-align: baseline;
+    margin-right: 0.2em;
+}
+
+/* Chapter numbers */
+#bible-content .c,
+#bible-content .chapter-number,
+#bible-content [class*="chapter-number"] {
+    font-size: 1.5em;
+    font-weight: 700;
+    color: #111827;
+    margin-bottom: 0.5rem;
+    display: block;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Footnote markers */
+#bible-content .note,
+#bible-content .footnote,
+#bible-content [class*="note"] {
+    font-size: 0.75em;
+    vertical-align: super;
+    color: #3b82f6;
+    cursor: pointer;
+}
+
+/* Cross references */
+#bible-content .crossref,
+#bible-content [class*="crossref"] {
+    font-size: 0.75em;
+    vertical-align: super;
+    color: #6b7280;
+}
+
+/* Poetry / indented lines */
+#bible-content .q,
+#bible-content .q1,
+#bible-content .q2,
+#bible-content .q3,
+#bible-content .poetry,
+#bible-content .poetry-1,
+#bible-content .poetry-2 {
+    padding-left: 1.5rem;
+    margin-bottom: 0.25rem;
+}
+
+#bible-content .q2,
+#bible-content .poetry-2 {
+    padding-left: 2.5rem;
+}
+
+/* Blockquotes */
+#bible-content blockquote {
+    border-left: 3px solid #e5e7eb;
+    padding-left: 1rem;
+    margin-left: 0;
+    color: #374151;
+}
+
+/* Ensure inline display for common verse wrappers */
+#bible-content span.content,
+#bible-content .content,
+#bible-content .verse-content {
+    display: inline;
+}
+
+/* Handle divs that should be inline within paragraphs */
+#bible-content p div,
+#bible-content .p div {
+    display: inline;
+}
+
+/* Selah */
+#bible-content .selah {
+    font-style: italic;
+    color: #6b7280;
+}
+
+/* Words of Jesus - some versions mark these */
+#bible-content .wj,
+#bible-content [class*="wj"] {
+    color: #991b1b;
+}
+
+/* Small caps for LORD etc */
+#bible-content .sc,
+#bible-content [class*="small-caps"] {
+    font-variant: small-caps;
+}
