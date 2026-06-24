@@ -1,0 +1,54 @@
+#=============================================================================
+# Bible Teacher - Installation Configuration File
+#=============================================================================
+# Copy this file to install.config and customize the values below.
+# Usage: sudo bash install.sh
+#
+# The install script will automatically load this file if it exists.
+#=============================================================================
+
+#-----------------------------------------------------------------------------
+# Application Settings
+#-----------------------------------------------------------------------------
+APP_NAME="bibleteacher"
+APP_DIR="/opt/bibleteacher"
+APP_USER="bibleteacher"
+APP_GROUP="bibleteacher"
+
+#-----------------------------------------------------------------------------
+# Database Settings
+#-----------------------------------------------------------------------------
+DB_NAME="bibleteacher"
+DB_USER="bibleuser"
+# IMPORTANT: Set a strong database password
+DB_PASSWORD=""  # Will be prompted if left empty
+
+#-----------------------------------------------------------------------------
+# Server Settings
+#-----------------------------------------------------------------------------
+# Your domain name (leave empty to use IP address only)
+DOMAIN=""
+
+# Server IP (auto-detected if left empty)
+SERVER_IP=""
+
+# Number of Gunicorn worker processes (recommended: 2-4 x CPU cores)
+GUNICORN_WORKERS=3
+
+#-----------------------------------------------------------------------------
+# SSL/TLS Settings
+#-----------------------------------------------------------------------------
+# Set up SSL with Let's Encrypt? (y/n)
+SETUP_SSL="n"
+
+# Admin email for Let's Encrypt notifications (required if SETUP_SSL=y)
+ADMIN_EMAIL=""
+
+#-----------------------------------------------------------------------------
+# Advanced Settings (optional)
+#-----------------------------------------------------------------------------
+# Gunicorn socket location
+GUNICORN_SOCK="/run/gunicorn.sock"
+
+# Python virtual environment directory
+# VENV_DIR="${APP_DIR}/venv"

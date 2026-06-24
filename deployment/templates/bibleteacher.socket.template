@@ -1,0 +1,25 @@
+# Systemd Socket Template for Bible Teacher
+#
+# This is a template file. Replace the following placeholders:
+#   {{APP_NAME}}        - Application name (e.g., bibleteacher)
+#   {{GUNICORN_SOCK}}   - Socket path (e.g., /run/gunicorn.sock)
+#   {{APP_USER}}        - Application user (e.g., bibleteacher)
+#
+# Installation:
+#   1. Copy this file to /etc/systemd/system/{{APP_NAME}}.socket
+#   2. Replace all {{PLACEHOLDERS}} with actual values
+#   3. Reload systemd: systemctl daemon-reload
+#   4. Enable: systemctl enable {{APP_NAME}}.socket
+#   5. Start: systemctl start {{APP_NAME}}.socket
+
+[Unit]
+Description=Gunicorn socket for {{APP_NAME}}
+
+[Socket]
+ListenStream={{GUNICORN_SOCK}}
+SocketUser={{APP_USER}}
+SocketGroup=www-data
+SocketMode=0660
+
+[Install]
+WantedBy=sockets.target

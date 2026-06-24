@@ -1,0 +1,42 @@
+# Gunicorn Configuration Template for Bible Teacher
+#
+# This is a template file. Replace the following placeholders:
+#   {{GUNICORN_SOCK}}   - Socket path (e.g., /run/gunicorn.sock)
+#   {{WORKERS}}         - Number of worker processes (e.g., 3)
+#   {{APP_DIR}}         - Application directory (e.g., /opt/bibleteacher)
+#   {{APP_NAME}}        - Application name (e.g., bibleteacher)
+#
+# Installation:
+#   1. Copy this file to {{APP_DIR}}/gunicorn_conf.py
+#   2. Replace all {{PLACEHOLDERS}} with actual values
+#   3. Set ownership: chown {{APP_USER}}:{{APP_GROUP}} {{APP_DIR}}/gunicorn_conf.py
+
+import multiprocessing
+
+# Socket binding
+bind = 'unix:{{GUNICORN_SOCK}}'
+
+# Worker processes
+workers = {{WORKERS}}
+worker_class = 'sync'
+
+# Timeouts
+timeout = 120
+keepalive = 5
+
+# Request limits
+max_requests = 1000
+max_requests_jitter = 50
+
+# Logging
+loglevel = 'info'
+accesslog = '{{APP_DIR}}/logs/gunicorn_access.log'
+errorlog = '{{APP_DIR}}/logs/gunicorn_error.log'
+
+# Process naming
+proc_name = '{{APP_NAME}}'
+
+# Recommended worker calculation:
+# workers = (2 * CPU_CORES) + 1
+# For a 2-core server: workers = 5
+# For a 4-core server: workers = 9

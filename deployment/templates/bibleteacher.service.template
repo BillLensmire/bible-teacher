@@ -1,0 +1,38 @@
+# Systemd Service Template for Bible Teacher
+#
+# This is a template file. Replace the following placeholders:
+#   {{APP_NAME}}        - Application name (e.g., bibleteacher)
+#   {{APP_USER}}        - Application user (e.g., bibleteacher)
+#   {{APP_GROUP}}       - Application group (e.g., bibleteacher)
+#   {{APP_DIR}}         - Application directory (e.g., /opt/bibleteacher)
+#   {{VENV_DIR}}        - Virtual environment directory (e.g., /opt/bibleteacher/venv)
+#
+# Installation:
+#   1. Copy this file to /etc/systemd/system/{{APP_NAME}}.service
+#   2. Replace all {{PLACEHOLDERS}} with actual values
+#   3. Reload systemd: systemctl daemon-reload
+#   4. Enable: systemctl enable {{APP_NAME}}.service
+#   5. Start: systemctl start {{APP_NAME}}.service
+
+[Unit]
+Description=Gunicorn daemon for {{APP_NAME}}
+Requires={{APP_NAME}}.socket
+After=network.target postgresql.service
+
+[Service]
+Type=notify
+User={{APP_USER}}
+Group={{APP_GROUP}}
+WorkingDirectory={{APP_DIR}}
+ExecStart={{VENV_DIR}}/bin/gunicorn \
+          --config {{APP_DIR}}/gunicorn_conf.py \
+          {{APP_NAME}}.wsgi:application
+ExecReload=/bin/kill -s HUP $MAINPID
+KillMode=mixed
+TimeoutStopSec=5
+PrivateTmp=true
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

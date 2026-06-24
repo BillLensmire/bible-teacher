@@ -2,4 +2,8 @@
 **/.venv
 **/venv
 **/media
-**/staticfiles  
+**/staticfiles
+install.config
+*.log
+*.bak
+*.backup
