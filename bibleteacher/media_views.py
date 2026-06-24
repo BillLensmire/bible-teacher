@@ -6,8 +6,12 @@ from django.conf import settings
 
 def media_view(request, path):
     """Serve media files with HTTP Range request support for audio/video seeking."""
-    full_path = os.path.join(settings.MEDIA_ROOT, path)
-    
+    media_root = os.path.realpath(settings.MEDIA_ROOT)
+    full_path = os.path.realpath(os.path.join(media_root, path))
+
+    if not full_path.startswith(media_root + os.sep):
+        raise Http404('File not found')
+
     if not os.path.exists(full_path) or not os.path.isfile(full_path):
         raise Http404('File not found')
     

@@ -24,6 +24,7 @@ Type=notify
 User={{APP_USER}}
 Group={{APP_GROUP}}
 WorkingDirectory={{APP_DIR}}
+EnvironmentFile={{APP_DIR}}/.env
 ExecStart={{VENV_DIR}}/bin/gunicorn \
           --config {{APP_DIR}}/gunicorn_conf.py \
           {{APP_NAME}}.wsgi:application

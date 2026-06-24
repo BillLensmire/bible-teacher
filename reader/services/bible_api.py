@@ -1,9 +1,36 @@
 import requests
+import bleach
 from django.core.cache import cache
 from django.conf import settings
 import logging
 
 logger = logging.getLogger(__name__)
+
+ALLOWED_HTML_TAGS = [
+    'p', 'span', 'div', 'br', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+    'strong', 'b', 'em', 'i', 'u', 'sup', 'sub', 'a', 'ul', 'ol', 'li',
+    'blockquote', 'hr', 'table', 'thead', 'tbody', 'tr', 'th', 'td',
+]
+
+ALLOWED_HTML_ATTRS = {
+    'a': ['href', 'title'],
+    'span': ['class', 'data-verse-id', 'data-verse-number'],
+    'div': ['class'],
+    'p': ['class'],
+    'sup': ['class'],
+    'sub': ['class'],
+}
+
+
+def sanitize_html(html_content):
+    if not html_content or not isinstance(html_content, str):
+        return html_content
+    return bleach.clean(
+        html_content,
+        tags=ALLOWED_HTML_TAGS,
+        attributes=ALLOWED_HTML_ATTRS,
+        strip=True
+    )
 
 
 class BibleAPIService:
@@ -99,6 +126,8 @@ class BibleAPIService:
         data = self._make_request(f'bibles/{version_id}/chapters/{chapter_id}', params=params)
         if data and 'data' in data:
             chapter_data = data['data']
+            if 'content' in chapter_data:
+                chapter_data['content'] = sanitize_html(chapter_data['content'])
             cache.set(cache_key, chapter_data, 3600)
             return chapter_data
         return None

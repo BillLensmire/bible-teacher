@@ -7,3 +7,4 @@ install.config
 *.log
 *.bak
 *.backup
+.env

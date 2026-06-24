@@ -150,6 +150,7 @@ class SermonPlayer {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'X-CSRFToken': this.getCookie('csrftoken'),
                 },
                 body: JSON.stringify({
                     fingerprint: this.fingerprint,
@@ -303,17 +304,20 @@ document.addEventListener('DOMContentLoaded', () => {
 window.addEventListener('beforeunload', () => {
     sermonPlayers.forEach(player => {
         if (player.fingerprint && !player.audio.paused) {
-            navigator.sendBeacon(
-                '/api/progress/save/',
-                new Blob(
-                    [JSON.stringify({
-                        fingerprint: player.fingerprint,
-                        sermon_id: player.sermonId,
-                        position: Math.floor(player.audio.currentTime)
-                    })],
-                    { type: 'application/json' }
-                )
-            );
+            fetch('/api/progress/save/', {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': player.getCookie('csrftoken'),
+                },
+                body: JSON.stringify({
+                    fingerprint: player.fingerprint,
+                    sermon_id: player.sermonId,
+                    position: Math.floor(player.audio.currentTime)
+                }),
+                keepalive: true
+            }).catch(() => {});
         }
     });
 });

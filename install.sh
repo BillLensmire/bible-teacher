@@ -382,7 +382,7 @@ setup_python_env() {
 generate_secret_key() {
     "$VENV_DIR/bin/python" -c "
 import secrets
-chars = 'abcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*(-_=+)'
+chars = 'abcdefghijklmnopqrstuvwxyz0123456789!@#\$%^&*(-_=+)'
 print(''.join(secrets.choice(chars) for _ in range(50)))
 "
 }
@@ -390,108 +390,47 @@ print(''.join(secrets.choice(chars) for _ in range(50)))
 configure_django_settings() {
     info "Step 6: Configuring Django production settings..."
 
-    local settings_file="$APP_DIR/bibleteacher/settings.py"
-
-    if [[ ! -f "$settings_file" ]]; then
-        error "settings.py not found at $settings_file"
-    fi
-
-    # Back up original settings
-    cp "$settings_file" "${settings_file}.bak.$(date +%Y%m%d%H%M%S)"
+    local env_file="$APP_DIR/.env"
 
     # Generate a new SECRET_KEY
     local new_secret_key=$(generate_secret_key)
 
     # Build ALLOWED_HOSTS list
-    local allowed_hosts="'localhost', '127.0.0.1', '$SERVER_IP'"
+    local allowed_hosts="localhost,127.0.0.1,$SERVER_IP"
     if [[ -n "$DOMAIN" ]]; then
-        allowed_hosts="'$DOMAIN', 'www.$DOMAIN', $allowed_hosts"
+        allowed_hosts="$DOMAIN,www.$DOMAIN,$allowed_hosts"
     fi
 
-    # Apply settings changes with Python (more reliable than sed for complex replacements)
-    "$VENV_DIR/bin/python" - <<'PYEOF'
-import re
-import sys
+    # Determine SSL redirect setting
+    local ssl_redirect="True"
+    if [[ "$SETUP_SSL" != "y" ]]; then
+        ssl_redirect="False"
+    fi
 
-settings_path = sys.argv[1] if len(sys.argv) > 1 else "/opt/bibleteacher/bibleteacher/settings.py"
-secret_key = sys.argv[2] if len(sys.argv) > 2 else ""
-allowed_hosts = sys.argv[3] if len(sys.argv) > 3 else ""
+    # Write .env file (overwrite if exists, backing up first)
+    if [[ -f "$env_file" ]]; then
+        cp "$env_file" "${env_file}.bak.$(date +%Y%m%d%H%M%S)"
+    fi
 
-with open(settings_path, 'r') as f:
-    content = f.read()
+    cat > "$env_file" <<EOF
+DJANGO_SECRET_KEY='${new_secret_key}'
+DJANGO_DEBUG=False
+DJANGO_ALLOWED_HOSTS=${allowed_hosts}
+DJANGO_SECURE_SSL_REDIRECT=${ssl_redirect}
 
-# Replace SECRET_KEY
-content = re.sub(
-    r"SECRET_KEY\s*=\s*['\"][^'\"]*['\"]",
-    f"SECRET_KEY = '{secret_key}'",
-    content
-)
+DB_NAME=${DB_NAME}
+DB_USER=${DB_USER}
+DB_PASSWORD='${DB_PASSWORD}'
+DB_HOST=localhost
+DB_PORT=5432
 
-# Replace DEBUG = True with DEBUG = False
-content = re.sub(
-    r"DEBUG\s*=\s*True",
-    "DEBUG = False",
-    content
-)
+BIBLE_API_KEY=${BIBLE_API_KEY:-}
+DEFAULT_BIBLE_VERSION=de4e12af7f28f599-02
+EOF
 
-# Replace ALLOWED_HOSTS
-content = re.sub(
-    r"ALLOWED_HOSTS\s*=\s*\[[^\]]*\]",
-    f"ALLOWED_HOSTS = [{allowed_hosts}]",
-    content
-)
-
-# Add production security settings at the end if not already present
-if 'SECURE_PROXY_SSL_HEADER' not in content:
-    content += """
-
-# Production security settings
-SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-SECURE_HSTS_SECONDS = 31536000
-SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-SECURE_HSTS_PRELOAD = True
-SECURE_CONTENT_TYPE_NOSNIFF = True
-SECURE_BROWSER_XSS_FILTER = True
-X_FRAME_OPTIONS = 'DENY'
-SESSION_COOKIE_SECURE = True
-CSRF_COOKIE_SECURE = True
-
-# Logging
-import os
-LOGGING = {
-    'version': 1,
-    'disable_existing_loggers': False,
-    'formatters': {
-        'verbose': {
-            'format': '[%(asctime)s] %(levelname)s %(name)s: %(message)s',
-        },
-    },
-    'handlers': {
-        'file': {
-            'level': 'INFO',
-            'class': 'logging.handlers.RotatingFileHandler',
-            'filename': os.path.join(BASE_DIR, 'logs', 'django.log'),
-            'maxBytes': 10485760,
-            'backupCount': 5,
-            'formatter': 'verbose',
-        },
-    },
-    'loggers': {
-        'django': {
-            'handlers': ['file'],
-            'level': 'INFO',
-            'propagate': True,
-        },
-    },
-}
-"""
-
-with open(settings_path, 'w') as f:
-    f.write(content)
-
-print("Settings updated successfully.")
-PYEOF
-    "$VENV_DIR/bin/python" - "$settings_file" "$new_secret_key" "$allowed_hosts"
+    # Secure the .env file
+    chmod 600 "$env_file"
+    chown "$APP_USER:$APP_GROUP" "$env_file"
 
     # Create logs directory
     mkdir -p "$APP_DIR/logs"
@@ -499,12 +438,14 @@ PYEOF
     chown -R "$APP_USER:$APP_GROUP" "$APP_DIR/logs"
 
     ok "Django production settings configured."
+    info "  - .env file created at $env_file"
     info "  - DEBUG = False"
     info "  - New SECRET_KEY generated"
-    info "  - ALLOWED_HOSTS = [$allowed_hosts]"
-    info "  - Security headers added"
+    info "  - ALLOWED_HOSTS = ${allowed_hosts}"
+    info "  - SSL redirect = ${ssl_redirect}"
     info "  - Logging configured to $APP_DIR/logs/django.log"
 }
+
 
 #-----------------------------------------------------------------------------
 # Step 7: Run Migrations and Collect Static Files
@@ -513,6 +454,11 @@ run_django_setup() {
     info "Step 7: Running Django migrations and collecting static files..."
 
     cd "$APP_DIR"
+
+    # Load environment variables for management commands
+    set -a
+    source "$APP_DIR/.env"
+    set +a
 
     # Create cache table (used by DatabaseCache)
     info "  Creating cache table..."
@@ -585,6 +531,7 @@ Type=notify
 User=${APP_USER}
 Group=${APP_GROUP}
 WorkingDirectory=${APP_DIR}
+EnvironmentFile=${APP_DIR}/.env
 ExecStart=${VENV_DIR}/bin/gunicorn \\
           --config ${APP_DIR}/gunicorn_conf.py \\
           ${APP_NAME}.wsgi:application

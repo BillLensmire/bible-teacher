@@ -2,13 +2,15 @@ from django.shortcuts import render, get_object_or_404
 from django.http import JsonResponse
 from django.views.generic import ListView, DetailView
 from django.db.models import Q
-from django.views.decorators.csrf import ensure_csrf_cookie, csrf_exempt
+from django.views.decorators.csrf import ensure_csrf_cookie, csrf_protect
 from django.utils.decorators import method_decorator
+from django.conf import settings
 from .models import (
     Sermon, SermonNotePDF, PastorNote, ExternalNote,
     Pastor, SermonGroup, ListeningProgress
 )
 from .services import BibleAPIService
+from .services.bible_api import sanitize_html
 import logging
 
 logger = logging.getLogger(__name__)
@@ -17,6 +19,9 @@ logger = logging.getLogger(__name__)
 @ensure_csrf_cookie
 def debug_audio(request):
     """Debug page for audio progress tracking"""
+    if not settings.DEBUG:
+        from django.core.exceptions import PermissionDenied
+        raise PermissionDenied
     return render(request, 'reader/debug_audio.html')
 
 
@@ -81,7 +86,7 @@ def get_chapter_content(request, book, chapter):
         })
     except Exception as e:
         logger.error(f"Error fetching chapter content: {e}")
-        return JsonResponse({'error': str(e)}, status=500)
+        return JsonResponse({'error': 'An error occurred while fetching chapter content'}, status=500)
 
 
 def get_chapter_notes(request, book, chapter):
@@ -99,6 +104,9 @@ def get_chapter_notes(request, book, chapter):
             book__iexact=book,
             chapter=chapter
         ).order_by('verse_start')
+
+    for note in notes:
+        note.note_text = sanitize_html(note.note_text)
     
     notes_html = render(request, 'reader/notes_fragment.html', {
         'notes': notes,
@@ -216,54 +224,65 @@ class SermonNotesListView(ListView):
         return context
 
 
-@csrf_exempt
+@csrf_protect
 def save_listening_progress(request):
     """API endpoint to save sermon listening progress"""
-    if request.method == 'POST':
-        import json
-        try:
-            data = json.loads(request.body)
-        except json.JSONDecodeError:
-            return JsonResponse({'status': 'error', 'message': 'Invalid JSON'}, status=400)
-        
-        fingerprint = data.get('fingerprint')
-        sermon_id = data.get('sermon_id')
-        position = data.get('position')
-        
-        print(f"Saving progress: fingerprint={fingerprint}, sermon_id={sermon_id}, position={position}")
-        
-        if fingerprint and sermon_id and position is not None:
-            try:
-                sermon = Sermon.objects.get(id=sermon_id)
-            except Sermon.DoesNotExist:
-                return JsonResponse({'status': 'error', 'message': f'Sermon {sermon_id} not found'}, status=404)
-            progress, created = ListeningProgress.objects.update_or_create(
-                browser_fingerprint=fingerprint,
-                sermon=sermon,
-                defaults={'current_position': position}
-            )
-            return JsonResponse({'status': 'success', 'position': position})
-        
-        return JsonResponse({'status': 'error', 'message': 'Missing required fields'}, status=400)
-    
-    return JsonResponse({'status': 'error', 'message': 'Method not allowed'}, status=405)
+    if request.method != 'POST':
+        return JsonResponse({'status': 'error', 'message': 'Method not allowed'}, status=405)
+
+    import json
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({'status': 'error', 'message': 'Invalid JSON'}, status=400)
+
+    fingerprint = data.get('fingerprint')
+    sermon_id = data.get('sermon_id')
+    position = data.get('position')
+
+    if not fingerprint or not isinstance(fingerprint, str) or len(fingerprint) > 64:
+        return JsonResponse({'status': 'error', 'message': 'Invalid fingerprint'}, status=400)
+    if not sermon_id:
+        return JsonResponse({'status': 'error', 'message': 'Invalid sermon_id'}, status=400)
+    if position is None or not isinstance(position, (int, float)) or position < 0:
+        return JsonResponse({'status': 'error', 'message': 'Invalid position'}, status=400)
+
+    try:
+        sermon_id = int(sermon_id)
+        position = int(position)
+    except (ValueError, TypeError):
+        return JsonResponse({'status': 'error', 'message': 'Invalid sermon_id or position'}, status=400)
+
+    try:
+        sermon = Sermon.objects.get(id=sermon_id)
+    except Sermon.DoesNotExist:
+        return JsonResponse({'status': 'error', 'message': 'Sermon not found'}, status=404)
+
+    progress, created = ListeningProgress.objects.update_or_create(
+        browser_fingerprint=fingerprint,
+        sermon=sermon,
+        defaults={'current_position': position}
+    )
+    return JsonResponse({'status': 'success', 'position': position})
 
 
 def get_listening_progress(request, sermon_id):
     """API endpoint to get sermon listening progress"""
     fingerprint = request.GET.get('fingerprint')
-    
-    if fingerprint:
-        try:
-            progress = ListeningProgress.objects.get(
-                browser_fingerprint=fingerprint,
-                sermon_id=sermon_id
-            )
-            return JsonResponse({
-                'status': 'success',
-                'position': progress.current_position
-            })
-        except ListeningProgress.DoesNotExist:
-            return JsonResponse({'status': 'success', 'position': 0})
-    
-    return JsonResponse({'status': 'error'}, status=400)
+
+    if not fingerprint or len(fingerprint) > 64:
+        return JsonResponse({'status': 'error', 'message': 'Invalid fingerprint'}, status=400)
+
+    try:
+        progress = ListeningProgress.objects.get(
+            browser_fingerprint=fingerprint,
+            sermon_id=sermon_id
+        )
+        return JsonResponse({
+            'status': 'success',
+            'position': progress.current_position
+        })
+    except ListeningProgress.DoesNotExist:
+        return JsonResponse({'status': 'success', 'position': 0})
+    except (ValueError, TypeError):
+        return JsonResponse({'status': 'error', 'message': 'Invalid request'}, status=400)
