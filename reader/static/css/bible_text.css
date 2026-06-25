@@ -70,7 +70,7 @@
 #bible-content sup {
     font-weight: 700;
     color: #111827;
-    font-size: 0.85em;
+    font-size: 1em;
     vertical-align: baseline;
     margin-right: 0.15em;
     margin-left: 0.1em;
@@ -78,27 +78,22 @@
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
-/* First verse number in a chapter - make it larger */
+/* First verse number in a chapter */
 #bible-content .chapter .v:first-of-type,
 #bible-content .chapter sup.v:first-of-type,
 #bible-content .chapter span.v:first-of-type,
 #bible-content .chapter p:first-child .v:first-of-type {
-    font-size: 1.5em;
+    font-size: 1em;
     font-weight: 700;
     vertical-align: baseline;
     margin-right: 0.2em;
 }
 
-/* Chapter numbers */
+/* Chapter numbers - hidden, heading already shows book and chapter */
 #bible-content .c,
 #bible-content .chapter-number,
 #bible-content [class*="chapter-number"] {
-    font-size: 1.5em;
-    font-weight: 700;
-    color: #111827;
-    margin-bottom: 0.5rem;
-    display: block;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    display: none;
 }
 
 /* Footnote markers */
