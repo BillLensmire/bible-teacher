@@ -202,6 +202,7 @@ class ReadingProgress(models.Model):
     book = models.CharField(max_length=100)
     chapter = models.IntegerField(default=1)
     version = models.CharField(max_length=100, blank=True, default='')
+    note_source = models.CharField(max_length=100, blank=True, default='constable')
     last_updated = models.DateTimeField(auto_now=True)
 
     class Meta:

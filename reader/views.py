@@ -219,6 +219,14 @@ def set_note_source(request):
         return JsonResponse({'status': 'error', 'message': 'Invalid note_source'}, status=400)
 
     request.session['note_source'] = note_source
+
+    fingerprint = data.get('fingerprint')
+    if fingerprint and isinstance(fingerprint, str) and len(fingerprint) <= 64:
+        ReadingProgress.objects.update_or_create(
+            browser_fingerprint=fingerprint,
+            defaults={'note_source': note_source}
+        )
+
     return JsonResponse({'status': 'success', 'note_source': note_source})
 
 
@@ -428,11 +436,13 @@ def get_reading_progress(request):
 
     try:
         progress = ReadingProgress.objects.get(browser_fingerprint=fingerprint)
+        request.session['note_source'] = progress.note_source
         return JsonResponse({
             'status': 'success',
             'book': progress.book,
             'chapter': progress.chapter,
-            'version': progress.version
+            'version': progress.version,
+            'note_source': progress.note_source
         })
     except ReadingProgress.DoesNotExist:
-        return JsonResponse({'status': 'success', 'book': None, 'chapter': None, 'version': None})
+        return JsonResponse({'status': 'success', 'book': None, 'chapter': None, 'version': None, 'note_source': None})

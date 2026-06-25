@@ -389,7 +389,7 @@ document.getElementById('note-source-selector').addEventListener('change', async
                 'Content-Type': 'application/json',
                 'X-CSRFToken': getCookie('csrftoken')
             },
-            body: JSON.stringify({ note_source: noteSource })
+            body: JSON.stringify({ note_source: noteSource, fingerprint: browserFingerprint })
         });
         notesCache = {};
         if (currentChapter) {
@@ -419,6 +419,34 @@ function getCookie(name) {
 }
 
 document.getElementById('notes-content').style.transition = 'opacity 0.2s ease-in-out';
+
+function applyNoteSourceToUI(noteSource) {
+    const selector = document.getElementById('note-source-selector');
+    if (selector.value === noteSource) return false;
+    selector.value = noteSource;
+    const selectedText = selector.options[selector.selectedIndex].text;
+    const titleEl = document.getElementById('notes-title');
+    if (noteSource === 'constable') {
+        titleEl.textContent = 'Viewing Constable Notes';
+    } else {
+        titleEl.textContent = `Viewing Pastor ${selectedText} Notes`;
+    }
+    return true;
+}
+
+async function restoreSavedNoteSource() {
+    if (!browserFingerprint) return false;
+    try {
+        const resp = await fetch(`/api/reading-progress/?fingerprint=${browserFingerprint}`);
+        const data = await resp.json();
+        if (data.status === 'success' && data.note_source) {
+            return applyNoteSourceToUI(data.note_source);
+        }
+    } catch (e) {
+        console.error('Failed to restore saved note source:', e);
+    }
+    return false;
+}
 
 let chapterCache = {};
 
@@ -496,6 +524,8 @@ window.addEventListener('beforeunload', () => {
     loadedChapters.add(chapterKey('{{ current_book }}', '{{ current_chapter }}'));
     currentChapter = chapterKey('{{ current_book }}', '{{ current_chapter }}');
     fetchNav('{{ current_book }}', '{{ current_chapter }}');
+    const noteSourceChanged = await restoreSavedNoteSource();
+    if (noteSourceChanged) notesCache = {};
     loadNotesForChapter('{{ current_book }}', '{{ current_chapter }}');
     saveReadingProgress();
     {% else %}
@@ -514,6 +544,9 @@ window.addEventListener('beforeunload', () => {
             const versionParam = data.version ? `?version=${encodeURIComponent(data.version)}` : '';
             window.location.href = `/${encodeURIComponent(data.book)}/${data.chapter}/${versionParam}`;
             return;
+        }
+        if (data.status === 'success' && data.note_source) {
+            applyNoteSourceToUI(data.note_source);
         }
     } catch (e) {
         console.error('Failed to load reading progress:', e);
