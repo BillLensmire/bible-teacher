@@ -33,8 +33,9 @@
                         <option value="">No books available</option>
                     {% endfor %}
                 </select>
-                <input type="number" id="chapter-selector" class="border rounded px-3 py-2 w-20"
-                       value="{{ current_chapter|default:1 }}" min="1">
+                <select id="chapter-selector" class="border rounded px-3 py-2">
+                    <option value="{{ current_chapter|default:1 }}">{{ current_chapter|default:1 }}</option>
+                </select>
             </div>
         </div>
 
@@ -212,7 +213,10 @@ function updateCurrentChapter() {
 
         if (currentChapter !== key) {
             currentChapter = key;
-            bookSelector.value = book;
+            if (bookSelector.value !== book) {
+                bookSelector.value = book;
+                populateChapterSelector(book, chapter);
+            }
             chapterSelector.value = chapter;
             loadNotesForChapter(book, chapter);
             window.history.replaceState({}, '', `/${encodeURIComponent(book)}/${chapter}/`);
@@ -317,16 +321,14 @@ async function loadSelectedChapter() {
 versionSelector.addEventListener('change', () => {
     navCache = {};
     notesCache = {};
+    chapterCache = {};
     loadSelectedChapter();
 });
-bookSelector.addEventListener('change', () => {
-    chapterSelector.value = 1;
+bookSelector.addEventListener('change', async () => {
+    await populateChapterSelector(bookSelector.value, 1);
     loadSelectedChapter();
 });
 chapterSelector.addEventListener('change', loadSelectedChapter);
-chapterSelector.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') loadSelectedChapter();
-});
 
 async function loadNotesForChapter(book, chapter) {
     const key = chapterKey(book, chapter);
@@ -402,6 +404,37 @@ function getCookie(name) {
 
 document.getElementById('notes-content').style.transition = 'opacity 0.2s ease-in-out';
 
+let chapterCache = {};
+
+async function populateChapterSelector(book, selectedChapter) {
+    const version = versionSelector.value;
+    const cacheKey = `${book}-${version}`;
+    let chapters = chapterCache[cacheKey];
+    if (!chapters) {
+        try {
+            const url = `/api/book-chapters/${encodeURIComponent(book)}/?version=${version}`;
+            const response = await fetch(url);
+            if (!response.ok) return;
+            const data = await response.json();
+            chapters = data.chapters || [];
+            chapterCache[cacheKey] = chapters;
+        } catch (error) {
+            console.error('Error fetching book chapters:', error);
+            return;
+        }
+    }
+    chapterSelector.innerHTML = '';
+    chapters.forEach(num => {
+        const opt = document.createElement('option');
+        opt.value = num;
+        opt.textContent = num;
+        if (num === parseInt(selectedChapter)) {
+            opt.selected = true;
+        }
+        chapterSelector.appendChild(opt);
+    });
+}
+
 window.addEventListener('beforeunload', () => {
     if (browserFingerprint && currentChapter) {
         const idx = currentChapter.lastIndexOf('-');
@@ -436,12 +469,16 @@ window.addEventListener('beforeunload', () => {
     }
 
     {% if current_book and current_chapter %}
+    populateChapterSelector('{{ current_book }}', '{{ current_chapter }}');
     loadedChapters.add(chapterKey('{{ current_book }}', '{{ current_chapter }}'));
     currentChapter = chapterKey('{{ current_book }}', '{{ current_chapter }}');
     fetchNav('{{ current_book }}', '{{ current_chapter }}');
     loadNotesForChapter('{{ current_book }}', '{{ current_chapter }}');
     saveReadingProgress();
     {% else %}
+    if (bookSelector.value) {
+        populateChapterSelector(bookSelector.value, 1);
+    }
     try {
         const resp = await fetch(`/api/reading-progress/?fingerprint=${browserFingerprint}`);
         const data = await resp.json();

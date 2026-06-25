@@ -147,6 +147,25 @@ def get_chapter_nav(request, book, chapter):
         return JsonResponse({'error': 'An error occurred'}, status=500)
 
 
+def get_book_chapters(request, book):
+    """API endpoint to get all chapter numbers for a given book"""
+    version_id = request.GET.get('version') or request.session.get('bible_version')
+    if version_id:
+        request.session['bible_version'] = version_id
+
+    try:
+        bible_service = BibleAPIService()
+        book_id = bible_service.get_book_id_from_name(book, version_id)
+        if not book_id:
+            return JsonResponse({'error': 'Book not found'}, status=404)
+        chapters = bible_service.get_chapters(book_id, version_id)
+        chapter_numbers = sorted([int(c['number']) for c in chapters if c['number'].isdigit()])
+        return JsonResponse({'chapters': chapter_numbers})
+    except Exception as e:
+        logger.error(f"Error fetching book chapters: {e}")
+        return JsonResponse({'error': 'An error occurred'}, status=500)
+
+
 def get_chapter_notes(request, book, chapter):
     """API endpoint to get notes for a specific chapter"""
     note_source = request.session.get('note_source', 'constable')
