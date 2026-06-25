@@ -64,8 +64,15 @@ class BibleAPIService:
         data = self._make_request('bibles', params={'language': 'eng'})
         if data and 'data' in data:
             versions = data['data']
-            cache.set(cache_key, versions, 86400)
-            return versions
+            seen_names = set()
+            unique_versions = []
+            for v in versions:
+                display_name = v.get('nameLocal') or v.get('name') or ''
+                if display_name and display_name not in seen_names:
+                    seen_names.add(display_name)
+                    unique_versions.append(v)
+            cache.set(cache_key, unique_versions, 86400)
+            return unique_versions
         return []
     
     def get_books(self, version_id=None):
