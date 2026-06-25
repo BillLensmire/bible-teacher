@@ -125,10 +125,10 @@
 - [ ] Create manual tagging interface
 
 ### Step 9: Constable Notes Import
-- [ ] Create admin management command
-- [ ] Implement HTML parser for soniclight.com
-- [ ] Build import interface
-- [ ] Add progress tracking
+- ✅ Create admin management command
+- ✅ Implement HTML parser for soniclight.com
+- ✅ Build import interface
+- ✅ Add progress tracking
 
 ### Step 10: Comprehensive Testing
 - [ ] Write model tests

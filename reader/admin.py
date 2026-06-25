@@ -1,4 +1,6 @@
-from django.contrib import admin
+from django.contrib import admin, messages
+from django.shortcuts import redirect
+from django.urls import reverse
 from .models import (
     Pastor, PastorNote, Sermon, SermonPassage, SermonGroup,
     SermonNotePDF, PDFPassage, ListeningProgress, ExternalNote
@@ -138,3 +140,42 @@ class ExternalNoteAdmin(admin.ModelAdmin):
     list_filter = ['source', 'book']
     search_fields = ['book', 'note_text']
     readonly_fields = ['fetched_at']
+    actions = ['import_constable_notes_action']
+
+    def get_urls(self):
+        from django.urls import path
+        urls = super().get_urls()
+        custom_urls = [
+            path(
+                'import-constable/',
+                self.admin_site.admin_view(self.import_constable_view),
+                name='reader_externalnote_import_constable',
+            ),
+        ]
+        return custom_urls + urls
+
+    def import_constable_notes_action(self, request, queryset):
+        messages.info(request, 'Click the "Import Constable Notes" button at the top to import notes from soniclight.com.')
+    import_constable_notes_action.short_description = 'Import Constable Notes'
+
+    def import_constable_view(self, request):
+        from .services import ConstableImportService
+        service = ConstableImportService()
+        results = service.import_all(overwrite=True)
+        total_created = sum(r.get('created', 0) for r in results)
+        total_updated = sum(r.get('updated', 0) for r in results)
+        errors = [r for r in results if 'error' in r]
+        messages.success(
+            request,
+            f'Import complete: {total_created} created, {total_updated} updated, '
+            f'{len(errors)} errors.'
+        )
+        if errors:
+            for e in errors:
+                messages.error(request, f"{e['book']}: {e['error']}")
+        return redirect(reverse('admin:reader_externalnote_changelist'))
+
+    def changelist_view(self, request, extra_context=None):
+        extra_context = extra_context or {}
+        extra_context['show_import_button'] = True
+        return super().changelist_view(request, extra_context=extra_context)
