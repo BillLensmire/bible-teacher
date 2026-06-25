@@ -125,10 +125,10 @@
 {% block extra_js %}
 <script>
 console.log('[Sermon List] Loading scripts...');
-console.log('[Sermon List] Fingerprint path:', '{% static "reader/js/fingerprint.js" %}');
+console.log('[Sermon List] Browser ID path:', '{% static "reader/js/browser_id.js" %}');
 console.log('[Sermon List] Player path:', '{% static "reader/js/sermon_player.js" %}');
 </script>
-<script type="text/javascript" src="{% static 'reader/js/fingerprint.js' %}?v={% now 'U' %}" onerror="console.error('[Sermon List] Failed to load fingerprint.js')"></script>
+<script type="text/javascript" src="{% static 'reader/js/browser_id.js' %}?v={% now 'U' %}" onerror="console.error('[Sermon List] Failed to load browser_id.js')"></script>
 <script type="text/javascript" src="{% static 'reader/js/sermon_player.js' %}?v={% now 'U' %}" onerror="console.error('[Sermon List] Failed to load sermon_player.js')"></script>
 <script>
 console.log('[Sermon List] Scripts loaded');

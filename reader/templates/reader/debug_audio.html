@@ -33,17 +33,17 @@
 
 {% block extra_js %}
 <script>
-console.log('Loading fingerprint.js from:', '{% static "reader/js/fingerprint.js" %}');
+console.log('Loading browser_id.js from:', '{% static "reader/js/browser_id.js" %}');
 console.log('Loading sermon_player.js from:', '{% static "reader/js/sermon_player.js" %}');
 </script>
-<script type="text/javascript" src="{% static 'reader/js/fingerprint.js' %}?v={{ request.build_absolute_uri|slice:'-10:' }}" onerror="console.error('Failed to load fingerprint.js')"></script>
+<script type="text/javascript" src="{% static 'reader/js/browser_id.js' %}?v={{ request.build_absolute_uri|slice:'-10:' }}" onerror="console.error('Failed to load browser_id.js')"></script>
 <script type="text/javascript" src="{% static 'reader/js/sermon_player.js' %}?v={{ request.build_absolute_uri|slice:'-10:' }}" onerror="console.error('Failed to load sermon_player.js')"></script>
 <script>
 console.log('Scripts loaded. BrowserFingerprint available:', typeof BrowserFingerprint !== 'undefined');
 if (typeof BrowserFingerprint === 'undefined') {
     console.error('BrowserFingerprint class failed to load!');
     console.log('Attempting to fetch script directly...');
-    fetch('{% static "reader/js/fingerprint.js" %}')
+    fetch('{% static "reader/js/browser_id.js" %}')
         .then(r => r.text())
         .then(text => console.log('Script content length:', text.length, 'First 100 chars:', text.substring(0, 100)))
         .catch(e => console.error('Fetch failed:', e));
