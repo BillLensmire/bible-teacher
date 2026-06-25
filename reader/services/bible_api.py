@@ -125,7 +125,7 @@ class BibleAPIService:
             'content-type': 'html',
             'include-notes': 'true' if include_notes else 'false',
             'include-titles': 'true',
-            'include-chapter-numbers': 'true',
+            'include-chapter-numbers': 'false',
             'include-verse-numbers': 'true',
             'include-verse-spans': 'true'
         }

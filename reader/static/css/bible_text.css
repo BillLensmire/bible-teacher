@@ -92,8 +92,9 @@
 /* Chapter numbers - hidden, heading already shows book and chapter */
 #bible-content .c,
 #bible-content .chapter-number,
-#bible-content [class*="chapter-number"] {
-    display: none;
+#bible-content [class*="chapter-number"],
+#bible-content .label {
+    display: none !important;
 }
 
 /* Footnote markers */
