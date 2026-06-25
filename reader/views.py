@@ -7,7 +7,7 @@ from django.utils.decorators import method_decorator
 from django.conf import settings
 from .models import (
     Sermon, SermonNotePDF, PastorNote, ExternalNote,
-    Pastor, SermonGroup, ListeningProgress
+    Pastor, SermonGroup, ListeningProgress, ReadingProgress
 )
 from .services import BibleAPIService
 from .services.bible_api import sanitize_html
@@ -27,18 +27,18 @@ def debug_audio(request):
 
 def bible_reader(request, book=None, chapter=None):
     """Main Bible study page with two-pane layout"""
+    version_id = request.GET.get('version') or request.session.get('bible_version')
+    if version_id:
+        request.session['bible_version'] = version_id
+
     try:
         bible_service = BibleAPIService()
-        books = bible_service.get_books()
+        books = bible_service.get_books(version_id)
         versions = bible_service.get_available_versions()
     except Exception as e:
         logger.error(f"Failed to load Bible data: {e}")
         books = []
         versions = []
-    
-    version_id = request.GET.get('version') or request.session.get('bible_version')
-    if version_id:
-        request.session['bible_version'] = version_id
     
     chapter_content = None
     if book and chapter:
@@ -65,6 +65,8 @@ def bible_reader(request, book=None, chapter=None):
 def get_chapter_content(request, book, chapter):
     """API endpoint to get Bible chapter content"""
     version_id = request.GET.get('version') or request.session.get('bible_version')
+    if version_id:
+        request.session['bible_version'] = version_id
     
     try:
         bible_service = BibleAPIService()
@@ -92,6 +94,8 @@ def get_chapter_content(request, book, chapter):
 def get_chapter_nav(request, book, chapter):
     """API endpoint to get next/prev chapter for continuous scrolling"""
     version_id = request.GET.get('version') or request.session.get('bible_version')
+    if version_id:
+        request.session['bible_version'] = version_id
 
     try:
         bible_service = BibleAPIService()
@@ -335,3 +339,57 @@ def get_listening_progress(request, sermon_id):
         return JsonResponse({'status': 'success', 'position': 0})
     except (ValueError, TypeError):
         return JsonResponse({'status': 'error', 'message': 'Invalid request'}, status=400)
+
+
+@csrf_protect
+def save_reading_progress(request):
+    """API endpoint to save Bible reading position"""
+    if request.method != 'POST':
+        return JsonResponse({'status': 'error', 'message': 'Method not allowed'}, status=405)
+
+    import json
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({'status': 'error', 'message': 'Invalid JSON'}, status=400)
+
+    fingerprint = data.get('fingerprint')
+    book = data.get('book')
+    chapter = data.get('chapter')
+    version = data.get('version', '')
+
+    if not fingerprint or not isinstance(fingerprint, str) or len(fingerprint) > 64:
+        return JsonResponse({'status': 'error', 'message': 'Invalid fingerprint'}, status=400)
+    if not book or not isinstance(book, str):
+        return JsonResponse({'status': 'error', 'message': 'Invalid book'}, status=400)
+    if chapter is None or not isinstance(chapter, int) or chapter < 1:
+        return JsonResponse({'status': 'error', 'message': 'Invalid chapter'}, status=400)
+    if not isinstance(version, str) or len(version) > 100:
+        return JsonResponse({'status': 'error', 'message': 'Invalid version'}, status=400)
+
+    print(f"Saving reading progress: {fingerprint} {book} {chapter} {version}")
+    
+    ReadingProgress.objects.update_or_create(
+        browser_fingerprint=fingerprint,
+        defaults={'book': book, 'chapter': chapter, 'version': version}
+    )
+    return JsonResponse({'status': 'success', 'book': book, 'chapter': chapter})
+
+
+def get_reading_progress(request):
+    """API endpoint to get Bible reading position"""
+    fingerprint = request.GET.get('fingerprint')
+
+    if not fingerprint or len(fingerprint) > 64:
+        return JsonResponse({'status': 'error', 'message': 'Invalid fingerprint'}, status=400)
+
+    try:
+        progress = ReadingProgress.objects.get(browser_fingerprint=fingerprint)
+        return JsonResponse({
+            'status': 'success',
+            'book': progress.book,
+            'chapter': progress.chapter,
+            'version': progress.version
+        })
+    except ReadingProgress.DoesNotExist:
+        return JsonResponse({'status': 'success', 'book': None, 'chapter': None, 'version': None})

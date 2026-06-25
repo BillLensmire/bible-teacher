@@ -197,6 +197,20 @@ class ListeningProgress(models.Model):
         return f"{self.sermon.title} - {self.current_position}s"
 
 
+class ReadingProgress(models.Model):
+    browser_fingerprint = models.CharField(max_length=64, db_index=True)
+    book = models.CharField(max_length=100)
+    chapter = models.IntegerField(default=1)
+    version = models.CharField(max_length=100, blank=True, default='')
+    last_updated = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name_plural = 'Reading Progress'
+
+    def __str__(self):
+        return f"{self.book} {self.chapter} - {self.browser_fingerprint[:16]}"
+
+
 class ExternalNote(models.Model):
     source = models.CharField(max_length=100, default='constable')
     book = models.CharField(max_length=100)

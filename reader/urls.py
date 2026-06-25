@@ -15,4 +15,6 @@ urlpatterns = [
     path('api/toggle-notes/', views.toggle_note_type, name='toggle_note_type'),
     path('api/progress/save/', views.save_listening_progress, name='save_progress'),
     path('api/progress/<int:sermon_id>/', views.get_listening_progress, name='get_progress'),
+    path('api/reading-progress/save/', views.save_reading_progress, name='save_reading_progress'),
+    path('api/reading-progress/', views.get_reading_progress, name='get_reading_progress'),
 ]
