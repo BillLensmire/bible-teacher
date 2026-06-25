@@ -10,11 +10,11 @@
 {% block content %}
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:h-screen">
     <!-- Left Pane: Bible Text -->
-    <div class="bg-white rounded-lg shadow-lg p-6 lg:overflow-y-auto" id="bible-text-pane">
-        <div class="mb-4">
-            <h2 class="text-2xl font-bold mb-4">Bible Text</h2>
-            <div class="flex flex-wrap gap-4 mb-4">
-                <select id="version-selector" class="border rounded px-3 py-2" onchange="loadSelectedChapter()">
+    <div class="bg-white rounded-lg shadow-lg lg:overflow-y-auto" id="bible-text-pane">
+        <!-- Sticky selector header -->
+        <div id="bible-header" class="sticky top-0 bg-white z-10 border-b border-gray-200 px-6 py-3">
+            <div class="flex flex-wrap gap-3 items-center">
+                <select id="version-selector" class="border rounded px-3 py-2">
                     {% for version in versions %}
                         <option value="{{ version.id }}" {% if version.id == current_version %}selected{% endif %}>
                             {{ version.nameLocal|default:version.name }}
@@ -23,7 +23,7 @@
                         <option value="">No versions available</option>
                     {% endfor %}
                 </select>
-                <select id="book-selector" class="border rounded px-3 py-2" onchange="loadSelectedChapter()">
+                <select id="book-selector" class="border rounded px-3 py-2">
                     {% for book in books %}
                         <option value="{{ book.name }}" {% if book.name == current_book %}selected{% endif %}>
                             {{ book.name }}
@@ -32,14 +32,15 @@
                         <option value="">No books available</option>
                     {% endfor %}
                 </select>
-                <input type="number" id="chapter-selector" class="border rounded px-3 py-2 w-20" 
-                       value="{{ current_chapter|default:1 }}" min="1" onchange="loadSelectedChapter()">
+                <input type="number" id="chapter-selector" class="border rounded px-3 py-2 w-20"
+                       value="{{ current_chapter|default:1 }}" min="1">
             </div>
         </div>
 
-        <div id="bible-content" class="prose max-w-none">
+        <div id="bible-content" class="prose max-w-none px-6 pb-6">
             {% if chapter_content %}
                 <div class="chapter" data-book="{{ current_book }}" data-chapter="{{ current_chapter }}">
+                    <div class="chapter-title">{{ current_book }} {{ current_chapter }}</div>
                     {{ chapter_content.content|safe }}
                 </div>
             {% else %}
@@ -71,48 +72,193 @@
 
 {% block extra_js %}
 <script>
+let loadedChapters = new Set();
+let navCache = {};
 let currentChapter = null;
 let notesCache = {};
+let isLoading = false;
+let scrollTimer = null;
 
-// Allow Enter key in chapter input
-document.getElementById('chapter-selector').addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') {
-        loadSelectedChapter();
+const bibleContent = document.getElementById('bible-content');
+const biblePane = document.getElementById('bible-text-pane');
+const bookSelector = document.getElementById('book-selector');
+const chapterSelector = document.getElementById('chapter-selector');
+const versionSelector = document.getElementById('version-selector');
+const stickyHeader = document.getElementById('bible-header');
+
+function chapterKey(book, chapter) {
+    return `${book}-${chapter}`;
+}
+
+async function fetchNav(book, chapter) {
+    const key = chapterKey(book, chapter);
+    if (navCache[key]) return navCache[key];
+    try {
+        const version = versionSelector.value;
+        const url = `/api/chapter-nav/${encodeURIComponent(book)}/${chapter}/?version=${version}`;
+        const response = await fetch(url);
+        if (!response.ok) return null;
+        const nav = await response.json();
+        navCache[key] = nav;
+        return nav;
+    } catch (error) {
+        console.error('Error fetching nav:', error);
+        return null;
     }
-});
+}
+
+async function loadChapter(book, chapter, direction) {
+    const key = chapterKey(book, chapter);
+    if (loadedChapters.has(key)) return;
+    loadedChapters.add(key);
+
+    try {
+        const version = versionSelector.value;
+        const url = `/api/chapter/${encodeURIComponent(book)}/${chapter}/?version=${version}`;
+        const response = await fetch(url);
+        if (!response.ok) {
+            loadedChapters.delete(key);
+            return;
+        }
+        const data = await response.json();
+
+        const chapterDiv = document.createElement('div');
+        chapterDiv.className = 'chapter';
+        chapterDiv.dataset.book = data.book;
+        chapterDiv.dataset.chapter = data.chapter;
+        chapterDiv.innerHTML = `<div class="chapter-title">${data.book} ${data.chapter}</div>${data.content}`;
+
+        if (direction === 'prev') {
+            const oldHeight = bibleContent.scrollHeight;
+            bibleContent.insertBefore(chapterDiv, bibleContent.firstChild);
+            const newHeight = bibleContent.scrollHeight;
+            biblePane.scrollTop += (newHeight - oldHeight);
+        } else {
+            bibleContent.appendChild(chapterDiv);
+        }
+
+        fetchNav(data.book, data.chapter);
+    } catch (error) {
+        console.error('Error loading chapter:', error);
+        loadedChapters.delete(key);
+    }
+}
+
+async function loadAdjacentChapter(direction) {
+    if (isLoading) return;
+    const chapters = document.querySelectorAll('#bible-content .chapter');
+    if (chapters.length === 0) return;
+
+    let edgeChapter;
+    if (direction === 'next') {
+        edgeChapter = chapters[chapters.length - 1];
+    } else {
+        edgeChapter = chapters[0];
+    }
+
+    const book = edgeChapter.dataset.book;
+    const chapter = edgeChapter.dataset.chapter;
+    const key = chapterKey(book, chapter);
+
+    const nav = navCache[key] || await fetchNav(book, chapter);
+    if (!nav || !nav[direction]) return;
+
+    const target = nav[direction];
+    if (!loadedChapters.has(chapterKey(target.book, target.chapter))) {
+        isLoading = true;
+        await loadChapter(target.book, target.chapter, direction);
+        isLoading = false;
+    }
+}
+
+function updateCurrentChapter() {
+    const headerBottom = stickyHeader.getBoundingClientRect().bottom;
+    let current = null;
+
+    document.querySelectorAll('#bible-content .chapter').forEach(chapter => {
+        const rect = chapter.getBoundingClientRect();
+        if (rect.top <= headerBottom && rect.bottom > headerBottom) {
+            current = chapter;
+        }
+    });
+
+    if (!current) {
+        current = document.querySelector('#bible-content .chapter');
+    }
+
+    if (current) {
+        const book = current.dataset.book;
+        const chapter = current.dataset.chapter;
+        const key = chapterKey(book, chapter);
+
+        if (currentChapter !== key) {
+            currentChapter = key;
+            bookSelector.value = book;
+            chapterSelector.value = chapter;
+            loadNotesForChapter(book, chapter);
+            window.history.replaceState({}, '', `/${encodeURIComponent(book)}/${chapter}/`);
+        }
+    }
+}
+
+function onScroll() {
+    if (scrollTimer) clearTimeout(scrollTimer);
+    scrollTimer = setTimeout(() => {
+        updateCurrentChapter();
+
+        const scrollPos = biblePane.scrollTop;
+        const scrollHeight = biblePane.scrollHeight;
+        const paneHeight = biblePane.clientHeight;
+
+        if (scrollHeight - scrollPos - paneHeight < 600) {
+            loadAdjacentChapter('next');
+        }
+        if (scrollPos < 600) {
+            loadAdjacentChapter('prev');
+        }
+    }, 100);
+}
+
+biblePane.addEventListener('scroll', onScroll);
 
 async function loadSelectedChapter() {
-    const book = document.getElementById('book-selector').value;
-    const chapter = document.getElementById('chapter-selector').value;
-    const version = document.getElementById('version-selector').value;
-    
+    const book = bookSelector.value;
+    const chapter = chapterSelector.value;
+    const version = versionSelector.value;
+
     if (!book || !chapter) {
         alert('Please select a book and chapter');
         return;
     }
-    
-    const bibleContent = document.getElementById('bible-content');
+
+    loadedChapters.clear();
+    navCache = {};
+    currentChapter = null;
+
     bibleContent.innerHTML = '<div class="text-center py-8"><div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div><p class="mt-4 text-gray-600">Loading chapter...</p></div>';
-    
+    biblePane.scrollTop = 0;
+
     try {
         const url = `/api/chapter/${encodeURIComponent(book)}/${chapter}/?version=${version}`;
         const response = await fetch(url);
-        
-        if (!response.ok) {
-            throw new Error('Failed to load chapter');
-        }
-        
+        if (!response.ok) throw new Error('Failed to load chapter');
         const data = await response.json();
-        
-        bibleContent.innerHTML = `
-            <div class="chapter" data-book="${data.book}" data-chapter="${data.chapter}">
-                ${data.content}
-            </div>
-        `;
-        
-        observeChapter();
+
+        bibleContent.innerHTML = '';
+        const chapterDiv = document.createElement('div');
+        chapterDiv.className = 'chapter';
+        chapterDiv.dataset.book = data.book;
+        chapterDiv.dataset.chapter = data.chapter;
+        chapterDiv.innerHTML = `<div class="chapter-title">${data.book} ${data.chapter}</div>${data.content}`;
+        bibleContent.appendChild(chapterDiv);
+
+        const key = chapterKey(data.book, data.chapter);
+        loadedChapters.add(key);
+        currentChapter = key;
+
+        fetchNav(data.book, data.chapter);
         loadNotesForChapter(data.book, data.chapter);
-        
+
         window.history.pushState({}, '', `/${encodeURIComponent(book)}/${chapter}/`);
     } catch (error) {
         console.error('Error loading chapter:', error);
@@ -120,40 +266,29 @@ async function loadSelectedChapter() {
     }
 }
 
-function observeChapter() {
-    const observer = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting && entry.intersectionRatio > 0.5) {
-                const book = entry.target.dataset.book;
-                const chapter = entry.target.dataset.chapter;
-                loadNotesForChapter(book, chapter);
-            }
-        });
-    }, {
-        threshold: [0.5],
-        rootMargin: '0px'
-    });
-    
-    document.querySelectorAll('.chapter').forEach(chapter => {
-        observer.observe(chapter);
-    });
-}
+versionSelector.addEventListener('change', () => {
+    navCache = {};
+    notesCache = {};
+    loadSelectedChapter();
+});
+bookSelector.addEventListener('change', () => {
+    chapterSelector.value = 1;
+    loadSelectedChapter();
+});
+chapterSelector.addEventListener('change', loadSelectedChapter);
+chapterSelector.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') loadSelectedChapter();
+});
 
 async function loadNotesForChapter(book, chapter) {
-    const key = `${book}-${chapter}`;
-    
-    if (currentChapter === key) return;
-    currentChapter = key;
-    
+    const key = chapterKey(book, chapter);
     if (notesCache[key]) {
         updateNotesPane(notesCache[key]);
         return;
     }
-    
     try {
         const response = await fetch(`/api/notes/${encodeURIComponent(book)}/${chapter}/`);
         const data = await response.json();
-        
         notesCache[key] = data.html;
         updateNotesPane(data.html);
     } catch (error) {
@@ -164,7 +299,6 @@ async function loadNotesForChapter(book, chapter) {
 function updateNotesPane(html) {
     const notesContent = document.getElementById('notes-content');
     notesContent.style.opacity = '0';
-    
     setTimeout(() => {
         notesContent.innerHTML = html;
         notesContent.style.opacity = '1';
@@ -175,19 +309,16 @@ document.getElementById('toggle-notes-btn').addEventListener('click', async () =
     try {
         const response = await fetch('/api/toggle-notes/', {
             method: 'POST',
-            headers: {
-                'X-CSRFToken': getCookie('csrftoken')
-            }
+            headers: { 'X-CSRFToken': getCookie('csrftoken') }
         });
         const data = await response.json();
-        
         notesCache = {};
         const label = document.getElementById('note-type-label');
         label.textContent = data.note_type === 'pastor' ? 'Constable Notes' : 'Pastor Notes';
-        
         if (currentChapter) {
-            const [book, chapter] = currentChapter.split('-');
-            currentChapter = null;
+            const idx = currentChapter.lastIndexOf('-');
+            const book = currentChapter.substring(0, idx);
+            const chapter = currentChapter.substring(idx + 1);
             loadNotesForChapter(book, chapter);
         }
     } catch (error) {
@@ -213,7 +344,9 @@ function getCookie(name) {
 document.getElementById('notes-content').style.transition = 'opacity 0.2s ease-in-out';
 
 {% if current_book and current_chapter %}
-observeChapter();
+loadedChapters.add(chapterKey('{{ current_book }}', '{{ current_chapter }}'));
+currentChapter = chapterKey('{{ current_book }}', '{{ current_chapter }}');
+fetchNav('{{ current_book }}', '{{ current_chapter }}');
 loadNotesForChapter('{{ current_book }}', '{{ current_chapter }}');
 {% endif %}
 </script>

@@ -89,6 +89,55 @@ def get_chapter_content(request, book, chapter):
         return JsonResponse({'error': 'An error occurred while fetching chapter content'}, status=500)
 
 
+def get_chapter_nav(request, book, chapter):
+    """API endpoint to get next/prev chapter for continuous scrolling"""
+    version_id = request.GET.get('version') or request.session.get('bible_version')
+
+    try:
+        bible_service = BibleAPIService()
+        books = bible_service.get_books(version_id)
+
+        current_idx = None
+        for i, b in enumerate(books):
+            if b.get('name', '').lower() == book.lower():
+                current_idx = i
+                break
+
+        if current_idx is None:
+            return JsonResponse({'error': 'Book not found'}, status=404)
+
+        current_book = books[current_idx]
+        chapters = bible_service.get_chapters(current_book['id'], version_id)
+        chapter_numbers = sorted([int(c['number']) for c in chapters if c['number'].isdigit()])
+
+        current_chapter = int(chapter)
+
+        next_nav = None
+        if current_chapter + 1 in chapter_numbers:
+            next_nav = {'book': current_book['name'], 'chapter': current_chapter + 1}
+        elif current_idx + 1 < len(books):
+            next_book = books[current_idx + 1]
+            next_chapters = bible_service.get_chapters(next_book['id'], version_id)
+            next_nums = sorted([int(c['number']) for c in next_chapters if c['number'].isdigit()])
+            if next_nums:
+                next_nav = {'book': next_book['name'], 'chapter': next_nums[0]}
+
+        prev_nav = None
+        if current_chapter - 1 in chapter_numbers:
+            prev_nav = {'book': current_book['name'], 'chapter': current_chapter - 1}
+        elif current_idx - 1 >= 0:
+            prev_book = books[current_idx - 1]
+            prev_chapters = bible_service.get_chapters(prev_book['id'], version_id)
+            prev_nums = sorted([int(c['number']) for c in prev_chapters if c['number'].isdigit()])
+            if prev_nums:
+                prev_nav = {'book': prev_book['name'], 'chapter': prev_nums[-1]}
+
+        return JsonResponse({'next': next_nav, 'prev': prev_nav})
+    except Exception as e:
+        logger.error(f"Error fetching chapter nav: {e}")
+        return JsonResponse({'error': 'An error occurred'}, status=500)
+
+
 def get_chapter_notes(request, book, chapter):
     """API endpoint to get notes for a specific chapter"""
     note_type = request.session.get('note_type', 'pastor')

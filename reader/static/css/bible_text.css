@@ -1,5 +1,20 @@
 /* Bible text formatting styles */
 
+#bible-content .chapter-title {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: #1e3a8a;
+    margin-top: 2rem;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid #e5e7eb;
+}
+
+#bible-content .chapter:first-child .chapter-title {
+    margin-top: 0;
+}
+
 #bible-content {
     font-family: Georgia, 'Times New Roman', serif;
     font-size: 1.125rem;

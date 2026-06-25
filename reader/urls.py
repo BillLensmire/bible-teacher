@@ -10,6 +10,7 @@ urlpatterns = [
     path('notes/', views.SermonNotesListView.as_view(), name='sermon_notes_list'),
     path('debug-audio/', views.debug_audio, name='debug_audio'),
     path('api/chapter/<str:book>/<int:chapter>/', views.get_chapter_content, name='get_chapter_content'),
+    path('api/chapter-nav/<str:book>/<int:chapter>/', views.get_chapter_nav, name='get_chapter_nav'),
     path('api/notes/<str:book>/<int:chapter>/', views.get_chapter_notes, name='get_chapter_notes'),
     path('api/toggle-notes/', views.toggle_note_type, name='toggle_note_type'),
     path('api/progress/save/', views.save_listening_progress, name='save_progress'),
