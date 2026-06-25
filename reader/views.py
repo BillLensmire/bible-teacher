@@ -9,6 +9,7 @@ from .models import (
     Sermon, SermonNotePDF, PastorNote, ExternalNote,
     Pastor, SermonGroup, ListeningProgress, ReadingProgress
 )
+import json
 from .services import BibleAPIService
 from .services.bible_api import sanitize_html
 import logging
@@ -50,8 +51,12 @@ def bible_reader(request, book=None, chapter=None):
         except Exception as e:
             logger.error(f"Failed to load chapter: {e}")
     
+    note_source = request.session.get('note_source', 'constable')
+    pastors = Pastor.objects.all().order_by('name')
+
     context = {
-        'note_type': request.session.get('note_type', 'pastor'),
+        'note_source': note_source,
+        'pastors': pastors,
         'books': books,
         'versions': versions,
         'current_version': version_id,
@@ -144,39 +149,58 @@ def get_chapter_nav(request, book, chapter):
 
 def get_chapter_notes(request, book, chapter):
     """API endpoint to get notes for a specific chapter"""
-    note_type = request.session.get('note_type', 'pastor')
-    
-    if note_type == 'pastor':
-        notes = PastorNote.objects.filter(
-            book__iexact=book,
-            chapter=chapter
-        ).select_related('sermon', 'sermon__pastor').order_by('verse_start')
-    else:
+    note_source = request.session.get('note_source', 'constable')
+
+    if note_source == 'constable':
         notes = ExternalNote.objects.filter(
             source='constable',
             book__iexact=book,
             chapter=chapter
         ).order_by('verse_start')
+        note_type = 'constable'
+    else:
+        notes = PastorNote.objects.filter(
+            book__iexact=book,
+            chapter=chapter
+        ).select_related('sermon', 'sermon__pastor').order_by('verse_start')
+        note_type = 'pastor'
+        if note_source.startswith('pastor:'):
+            try:
+                pastor_id = int(note_source.split(':')[1])
+                notes = notes.filter(sermon__pastor_id=pastor_id)
+            except (ValueError, IndexError):
+                pass
 
     for note in notes:
         note.note_text = sanitize_html(note.note_text)
-    
+
     notes_html = render(request, 'reader/notes_fragment.html', {
         'notes': notes,
         'book': book,
         'chapter': chapter,
         'note_type': note_type
     }).content.decode('utf-8')
-    
+
     return JsonResponse({'html': notes_html})
 
 
-def toggle_note_type(request):
-    """Toggle between pastor notes and Constable notes"""
-    current = request.session.get('note_type', 'pastor')
-    new_type = 'constable' if current == 'pastor' else 'pastor'
-    request.session['note_type'] = new_type
-    return JsonResponse({'note_type': new_type})
+@csrf_protect
+def set_note_source(request):
+    """Set the note source (constable or pastor:<id>) in session"""
+    if request.method != 'POST':
+        return JsonResponse({'status': 'error', 'message': 'Method not allowed'}, status=405)
+
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({'status': 'error', 'message': 'Invalid JSON'}, status=400)
+
+    note_source = data.get('note_source', 'constable')
+    if note_source != 'constable' and not note_source.startswith('pastor:'):
+        return JsonResponse({'status': 'error', 'message': 'Invalid note_source'}, status=400)
+
+    request.session['note_source'] = note_source
+    return JsonResponse({'status': 'success', 'note_source': note_source})
 
 
 @method_decorator(ensure_csrf_cookie, name='dispatch')

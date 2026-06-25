@@ -56,15 +56,31 @@
     </div>
 
     <!-- Right Pane: Notes -->
-    <div class="bg-white rounded-lg shadow-lg p-6 lg:overflow-y-auto" id="notes-pane">
-        <div class="mb-4 flex flex-wrap justify-between items-center gap-2">
-            <h2 class="text-2xl font-bold">Notes</h2>
-            <button id="toggle-notes-btn" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
-                Switch to <span id="note-type-label">Constable Notes</span>
-            </button>
+    <div class="bg-white rounded-lg shadow-lg lg:overflow-y-auto" id="notes-pane">
+        <!-- Sticky notes header -->
+        <div id="notes-header" class="sticky top-0 bg-white z-10 border-b border-gray-200 px-6 py-3">
+            <div class="flex flex-wrap justify-between items-center gap-2">
+                <h2 id="notes-title" class="text-xl font-bold">
+                    {% if note_source == 'constable' %}
+                        Viewing Constable Notes
+                    {% else %}
+                        {% for pastor in pastors %}
+                            {% if note_source == 'pastor:'|add:pastor.id|stringformat:'s' %}
+                                Viewing Pastor {{ pastor.name }} Notes
+                            {% endif %}
+                        {% endfor %}
+                    {% endif %}
+                </h2>
+                <select id="note-source-selector" class="border rounded px-3 py-2">
+                    <option value="constable" {% if note_source == 'constable' %}selected{% endif %}>Dr. Constable</option>
+                    {% for pastor in pastors %}
+                        <option value="pastor:{{ pastor.id }}" {% if note_source == 'pastor:'|add:pastor.id|stringformat:'s' %}selected{% endif %}>{{ pastor.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
         </div>
 
-        <div id="notes-content" class="prose max-w-none">
+        <div id="notes-content" class="prose max-w-none px-6 pb-6">
             <p class="text-gray-500">Notes will appear here as you scroll through the Bible text.</p>
         </div>
     </div>
@@ -337,16 +353,27 @@ function updateNotesPane(html) {
     }, 200);
 }
 
-document.getElementById('toggle-notes-btn').addEventListener('click', async () => {
+document.getElementById('note-source-selector').addEventListener('change', async (e) => {
+    const noteSource = e.target.value;
+    const selectedText = e.target.options[e.target.selectedIndex].text;
+    const titleEl = document.getElementById('notes-title');
+
+    if (noteSource === 'constable') {
+        titleEl.textContent = 'Viewing Constable Notes';
+    } else {
+        titleEl.textContent = `Viewing Pastor ${selectedText} Notes`;
+    }
+
     try {
-        const response = await fetch('/api/toggle-notes/', {
+        await fetch('/api/set-note-source/', {
             method: 'POST',
-            headers: { 'X-CSRFToken': getCookie('csrftoken') }
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({ note_source: noteSource })
         });
-        const data = await response.json();
         notesCache = {};
-        const label = document.getElementById('note-type-label');
-        label.textContent = data.note_type === 'pastor' ? 'Constable Notes' : 'Pastor Notes';
         if (currentChapter) {
             const idx = currentChapter.lastIndexOf('-');
             const book = currentChapter.substring(0, idx);
@@ -354,7 +381,7 @@ document.getElementById('toggle-notes-btn').addEventListener('click', async () =
             loadNotesForChapter(book, chapter);
         }
     } catch (error) {
-        console.error('Failed to toggle notes:', error);
+        console.error('Failed to set note source:', error);
     }
 });
 
