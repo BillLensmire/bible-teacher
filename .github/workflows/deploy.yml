@@ -1,0 +1,40 @@
+name: Deploy to Akamai
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy to server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          script: |
+            set -e
+            echo "=== Starting deployment at $(date) ==="
+
+            cd /opt/bibleteacher
+
+            echo "[1/5] Pulling latest code..."
+            sudo -u bibleteacher git pull origin main
+
+            echo "[2/5] Installing dependencies..."
+            sudo -u bibleteacher venv/bin/pip install -r requirements.txt
+
+            echo "[3/5] Running database migrations..."
+            sudo -u bibleteacher venv/bin/python manage.py migrate --noinput
+
+            echo "[4/5] Collecting static files..."
+            sudo -u bibleteacher venv/bin/python manage.py collectstatic --noinput
+
+            echo "[5/5] Restarting Gunicorn..."
+            sudo systemctl restart bibleteacher.service
+
+            echo "=== Deployment complete at $(date) ==="

@@ -1,4 +1,4 @@
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import render, get_object_or_404, redirect
 from django.http import JsonResponse
 from django.views.generic import ListView, DetailView
 from django.db.models import Q
@@ -13,6 +13,7 @@ import json
 from .services import BibleAPIService
 from .services.bible_api import sanitize_html
 import logging
+import re
 
 logger = logging.getLogger(__name__)
 
@@ -28,6 +29,12 @@ def debug_audio(request):
 
 def bible_reader(request, book=None, chapter=None):
     """Main Bible study page with two-pane layout"""
+    if not book and not chapter:
+        user_agent = request.META.get('HTTP_USER_AGENT', '').lower()
+        if re.search(r'android|webos|iphone|ipad|ipod|blackberry|windows phone|opera mini|mobile', user_agent):
+            referer = request.META.get('HTTP_REFERER', '')
+            if not referer or request.get_host() not in referer:
+                return redirect('reader:sermon_list')
     version_id = request.GET.get('version') or request.session.get('bible_version')
     if version_id:
         request.session['bible_version'] = version_id

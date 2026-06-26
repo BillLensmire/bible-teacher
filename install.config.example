@@ -27,10 +27,10 @@ DB_PASSWORD=""  # Will be prompted if left empty
 # Server Settings
 #-----------------------------------------------------------------------------
 # Your domain name (leave empty to use IP address only)
-DOMAIN=""
+DOMAIN="bible.tasteandseegardens.com"
 
 # Server IP (auto-detected if left empty)
-SERVER_IP=""
+SERVER_IP="172.237.145.177"
 
 # Number of Gunicorn worker processes (recommended: 2-4 x CPU cores)
 GUNICORN_WORKERS=3
@@ -38,11 +38,11 @@ GUNICORN_WORKERS=3
 #-----------------------------------------------------------------------------
 # SSL/TLS Settings
 #-----------------------------------------------------------------------------
-# Set up SSL with Let's Encrypt? (y/n)
-SETUP_SSL="n"
+# Set up SSL with Let's Encrypt? (y/n) 
+SETUP_SSL="y"
 
 # Admin email for Let's Encrypt notifications (required if SETUP_SSL=y)
-ADMIN_EMAIL=""
+ADMIN_EMAIL="bill@tasteandseegardens.com"
 
 #-----------------------------------------------------------------------------
 # Advanced Settings (optional)
