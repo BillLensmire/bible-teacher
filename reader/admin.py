@@ -1,6 +1,7 @@
 from django.contrib import admin, messages
 from django.shortcuts import redirect
 from django.urls import reverse
+from django.conf import settings
 from .models import (
     Pastor, PastorNote, Sermon, SermonPassage, SermonGroup,
     SermonNotePDF, PDFPassage, ListeningProgress, ExternalNote
@@ -44,9 +45,17 @@ class SermonAdmin(admin.ModelAdmin):
     search_fields = ['title', 'description', 'pastor__name']
     filter_horizontal = ['groups']
     date_hierarchy = 'date_preached'
-    inlines = [SermonPassageInline, PastorNoteInline, SermonPDFInline]
+    inlines = [SermonPassageInline]
     readonly_fields = ['audio_duration']
-    
+
+    def get_inline_instances(self, request, obj=None):
+        inline_classes = [SermonPassageInline]
+        if settings.ENABLE_BIBLE_STUDY_PAGE:
+            inline_classes.append(PastorNoteInline)
+        if settings.ENABLE_SERMON_NOTES_PAGE:
+            inline_classes.append(SermonPDFInline)
+        return [inline_class(self.model, self.admin_site) for inline_class in inline_classes]
+
     fieldsets = (
         ('Basic Information', {
             'fields': ('title', 'pastor', 'date_preached', 'description')
@@ -179,3 +188,12 @@ class ExternalNoteAdmin(admin.ModelAdmin):
         extra_context = extra_context or {}
         extra_context['show_import_button'] = True
         return super().changelist_view(request, extra_context=extra_context)
+
+
+if not settings.ENABLE_BIBLE_STUDY_PAGE:
+    admin.site.unregister(ExternalNote)
+    admin.site.unregister(PastorNote)
+
+if not settings.ENABLE_SERMON_NOTES_PAGE:
+    admin.site.unregister(SermonNotePDF)
+    admin.site.unregister(PDFPassage)

@@ -13,11 +13,19 @@
         <div class="container mx-auto px-4 py-3">
             <div class="flex items-center justify-between">
                 <div class="flex items-center space-x-8">
+                    {% if ENABLE_BIBLE_STUDY_PAGE %}
                     <a href="{% url 'reader:bible_reader' %}" class="text-xl font-bold">Bible Teacher</a>
+                    {% else %}
+                    <a href="{% url 'reader:sermon_list' %}" class="text-xl font-bold">Bible Teacher</a>
+                    {% endif %}
                     <div class="hidden md:flex space-x-4">
+                        {% if ENABLE_BIBLE_STUDY_PAGE %}
                         <a href="{% url 'reader:bible_reader' %}" class="hover:text-blue-200">Bible Study</a>
+                        {% endif %}
                         <a href="{% url 'reader:sermon_list' %}" class="hover:text-blue-200">Sermons</a>
+                        {% if ENABLE_SERMON_NOTES_PAGE %}
                         <a href="{% url 'reader:sermon_notes_list' %}" class="hover:text-blue-200">Sermon Notes</a>
+                        {% endif %}
                     </div>
                 </div>
                 <div class="flex items-center space-x-4">
@@ -28,9 +36,13 @@
                 </div>
             </div>
             <div id="mobile-menu" class="hidden md:hidden mt-3 space-y-1">
+                {% if ENABLE_BIBLE_STUDY_PAGE %}
                 <a href="{% url 'reader:bible_reader' %}" class="block py-2 hover:text-blue-200">Bible Study</a>
+                {% endif %}
                 <a href="{% url 'reader:sermon_list' %}" class="block py-2 hover:text-blue-200">Sermons</a>
+                {% if ENABLE_SERMON_NOTES_PAGE %}
                 <a href="{% url 'reader:sermon_notes_list' %}" class="block py-2 hover:text-blue-200">Sermon Notes</a>
+                {% endif %}
                 <a href="/admin/" class="block py-2 hover:text-blue-200">Admin</a>
             </div>
         </div>

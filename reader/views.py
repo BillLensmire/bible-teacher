@@ -1,5 +1,5 @@
 from django.shortcuts import render, get_object_or_404, redirect
-from django.http import JsonResponse
+from django.http import JsonResponse, Http404
 from django.views.generic import ListView, DetailView
 from django.db.models import Q
 from django.views.decorators.csrf import ensure_csrf_cookie, csrf_protect
@@ -29,6 +29,8 @@ def debug_audio(request):
 
 def bible_reader(request, book=None, chapter=None):
     """Main Bible study page with two-pane layout"""
+    if not settings.ENABLE_BIBLE_STUDY_PAGE:
+        raise Http404("Bible Study page is not enabled.")
     if not book and not chapter:
         user_agent = request.META.get('HTTP_USER_AGENT', '').lower()
         if re.search(r'android|webos|iphone|ipad|ipod|blackberry|windows phone|opera mini|mobile', user_agent):
@@ -289,7 +291,12 @@ class SermonNotesListView(ListView):
     template_name = 'reader/sermon_notes_list.html'
     context_object_name = 'pdfs'
     paginate_by = 20
-    
+
+    def dispatch(self, request, *args, **kwargs):
+        if not settings.ENABLE_SERMON_NOTES_PAGE:
+            raise Http404("Sermon Notes page is not enabled.")
+        return super().dispatch(request, *args, **kwargs)
+
     def get_queryset(self):
         queryset = SermonNotePDF.objects.select_related('pastor', 'sermon').prefetch_related(
             'passages', 'groups'
