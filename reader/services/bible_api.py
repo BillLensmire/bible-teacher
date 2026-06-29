@@ -21,6 +21,23 @@ ALLOWED_HTML_ATTRS = {
     'sub': ['class'],
 }
 
+BIBLE_BOOKS = [
+    'Genesis', 'Exodus', 'Leviticus', 'Numbers', 'Deuteronomy',
+    'Joshua', 'Judges', 'Ruth', '1 Samuel', '2 Samuel',
+    '1 Kings', '2 Kings', '1 Chronicles', '2 Chronicles', 'Ezra',
+    'Nehemiah', 'Esther', 'Job', 'Psalms', 'Proverbs',
+    'Ecclesiastes', 'Song of Solomon', 'Isaiah', 'Jeremiah', 'Lamentations',
+    'Ezekiel', 'Daniel', 'Hosea', 'Joel', 'Amos',
+    'Obadiah', 'Jonah', 'Micah', 'Nahum', 'Habakkuk',
+    'Zephaniah', 'Haggai', 'Zechariah', 'Malachi', 'Matthew',
+    'Mark', 'Luke', 'John', 'Acts', 'Romans',
+    '1 Corinthians', '2 Corinthians', 'Galatians', 'Ephesians', 'Philippians',
+    'Colossians', '1 Thessalonians', '2 Thessalonians', '1 Timothy', '2 Timothy',
+    'Titus', 'Philemon', 'Hebrews', 'James', '1 Peter',
+    '2 Peter', '1 John', '2 John', '3 John', 'Jude',
+    'Revelation',
+]
+
 
 def sanitize_html(html_content):
     if not html_content or not isinstance(html_content, str):
@@ -145,19 +162,46 @@ class BibleAPIService:
         cached = cache.get(cache_key)
         if cached:
             return cached
-        
+
         verse_id = f"{book_id}.{chapter_number}.{verse_number}"
-        
+
         params = {
             'content-type': 'html',
             'include-verse-numbers': 'true'
         }
-        
+
         data = self._make_request(f'bibles/{version_id}/verses/{verse_id}', params=params)
         if data and 'data' in data:
             verse_data = data['data']
             cache.set(cache_key, verse_data, 3600)
             return verse_data
+        return None
+
+    def get_chapter_verse_count(self, book_id, chapter_number, version_id=None):
+        version_id = version_id or self.default_version
+        cache_key = f'bible_verse_count_{version_id}_{book_id}_{chapter_number}'
+        cached = cache.get(cache_key)
+        if cached:
+            return cached
+
+        chapter_data = self.get_chapter(book_id, chapter_number, version_id)
+        if not chapter_data:
+            return None
+
+        verse_count = chapter_data.get('verseCount')
+        if verse_count:
+            cache.set(cache_key, verse_count, 86400)
+            return verse_count
+
+        content = chapter_data.get('content', '')
+        if content:
+            import re
+            numbers = re.findall(r'data-verse-number="(\d+)"', content)
+            if numbers:
+                verse_count = max(int(n) for n in numbers)
+                cache.set(cache_key, verse_count, 86400)
+                return verse_count
+
         return None
     
     def get_verses(self, book_id, chapter_number, verse_start, verse_end=None, version_id=None):

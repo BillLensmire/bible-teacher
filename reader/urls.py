@@ -13,6 +13,7 @@ urlpatterns = [
     path('api/chapter/<str:book>/<int:chapter>/', views.get_chapter_content, name='get_chapter_content'),
     path('api/chapter-nav/<str:book>/<int:chapter>/', views.get_chapter_nav, name='get_chapter_nav'),
     path('api/book-chapters/<str:book>/', views.get_book_chapters, name='get_book_chapters'),
+    path('api/chapter-verses/<str:book>/<int:chapter>/', views.get_chapter_verses, name='get_chapter_verses'),
     path('api/notes/<str:book>/<int:chapter>/', views.get_chapter_notes, name='get_chapter_notes'),
     path('api/set-note-source/', views.set_note_source, name='set_note_source'),
     path('api/progress/save/', views.save_listening_progress, name='save_progress'),

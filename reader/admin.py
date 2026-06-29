@@ -1,3 +1,4 @@
+from django import forms
 from django.contrib import admin, messages
 from django.shortcuts import redirect
 from django.urls import reverse
@@ -6,12 +7,59 @@ from .models import (
     Pastor, PastorNote, Sermon, SermonPassage, SermonGroup,
     SermonNotePDF, PDFPassage, ListeningProgress, ExternalNote
 )
+from .services.bible_api import BIBLE_BOOKS
+
+
+class SermonPassageForm(forms.ModelForm):
+    book = forms.ChoiceField(
+        choices=[('', '---------')] + [(b, b) for b in BIBLE_BOOKS],
+        required=True
+    )
+    chapter = forms.IntegerField(
+        widget=forms.Select(choices=[('', '---------')]),
+        required=True
+    )
+    verse_start = forms.IntegerField(
+        widget=forms.Select(choices=[('', '---------')]),
+        required=True
+    )
+    verse_end = forms.IntegerField(
+        widget=forms.Select(choices=[('', '---------')]),
+        required=False
+    )
+
+    class Meta:
+        model = SermonPassage
+        fields = ['book', 'chapter', 'verse_start', 'verse_end', 'order']
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance and self.instance.pk:
+            if self.instance.chapter:
+                self.fields['chapter'].widget.choices = [
+                    ('', '---------'),
+                    (self.instance.chapter, self.instance.chapter)
+                ]
+            if self.instance.verse_start:
+                self.fields['verse_start'].widget.choices = [
+                    ('', '---------'),
+                    (self.instance.verse_start, self.instance.verse_start)
+                ]
+            if self.instance.verse_end:
+                self.fields['verse_end'].widget.choices = [
+                    ('', '---------'),
+                    (self.instance.verse_end, self.instance.verse_end)
+                ]
 
 
 class SermonPassageInline(admin.TabularInline):
     model = SermonPassage
+    form = SermonPassageForm
     extra = 1
     fields = ['book', 'chapter', 'verse_start', 'verse_end', 'order']
+
+    class Media:
+        js = ['admin/js/sermon_passage.js']
 
 
 class PastorNoteInline(admin.TabularInline):
