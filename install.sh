@@ -46,9 +46,9 @@ if [[ -f "$CONFIG_FILE" ]]; then
 fi
 
 APP_NAME="${APP_NAME:-bibleteacher}"
-APP_DIR="${APP_DIR:-/opt/bibleteacher}"
-APP_USER="${APP_USER:-bibleteacher}"
-APP_GROUP="${APP_GROUP:-bibleteacher}"
+APP_DIR="${APP_DIR:-/var/www/bibleteacher}"
+APP_USER="${APP_USER:-www-data}"
+APP_GROUP="${APP_GROUP:-www-data}"
 
 DB_NAME="${DB_NAME:-bibleteacher}"
 DB_USER="${DB_USER:-bibleuser}"

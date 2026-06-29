@@ -41,7 +41,7 @@ Use this checklist to ensure a complete and secure deployment.
 - [ ] Updated system packages (`apt update && apt upgrade`)
 - [ ] Installed required system packages
 - [ ] Created application user (`bibleteacher`)
-- [ ] Created application directory (`/opt/bibleteacher`)
+- [ ] Created application directory (`/var/www/bibleteacher`)
 
 ### Database Setup
 - [ ] PostgreSQL installed and running
@@ -51,7 +51,7 @@ Use this checklist to ensure a complete and secure deployment.
 - [ ] Database permissions granted
 
 ### Application Setup
-- [ ] Application files copied to `/opt/bibleteacher`
+- [ ] Application files copied to `/var/www/bibleteacher`
 - [ ] Python virtual environment created
 - [ ] Python dependencies installed
 - [ ] Django settings configured:
@@ -164,8 +164,8 @@ Use this checklist to ensure a complete and secure deployment.
 
 ### Log Monitoring
 - [ ] Know where to find logs:
-  - Django: `/opt/bibleteacher/logs/django.log`
-  - Gunicorn: `/opt/bibleteacher/logs/gunicorn_error.log`
+  - Django: `/var/www/bibleteacher/logs/django.log`
+  - Gunicorn: `/var/www/bibleteacher/logs/gunicorn_error.log`
   - Nginx: `/var/log/nginx/error.log`
 - [ ] Log rotation configured
 - [ ] Log monitoring/alerting set up (optional)
@@ -246,13 +246,13 @@ _______________________________________________________________________________
 sudo systemctl restart bibleteacher.service
 
 # View application logs
-sudo tail -f /opt/bibleteacher/logs/django.log
+sudo tail -f /var/www/bibleteacher/logs/django.log
 
 # Create database backup
 sudo -u postgres pg_dump bibleteacher > backup_$(date +%Y%m%d).sql
 
 # Update application
-cd /opt/bibleteacher
+cd /var/www/bibleteacher
 sudo systemctl stop bibleteacher.service
 sudo -u bibleteacher git pull
 sudo -u bibleteacher venv/bin/pip install -r requirements.txt
@@ -263,8 +263,8 @@ sudo systemctl start bibleteacher.service
 
 ### Important Files
 
-- Configuration: `/opt/bibleteacher/bibleteacher/settings.py`
-- Gunicorn config: `/opt/bibleteacher/gunicorn_conf.py`
+- Configuration: `/var/www/bibleteacher/bibleteacher/settings.py`
+- Gunicorn config: `/var/www/bibleteacher/gunicorn_conf.py`
 - Nginx config: `/etc/nginx/sites-available/bibleteacher`
 - Systemd service: `/etc/systemd/system/bibleteacher.service`
 - Systemd socket: `/etc/systemd/system/bibleteacher.socket`

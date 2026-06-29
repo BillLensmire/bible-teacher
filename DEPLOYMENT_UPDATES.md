@@ -10,7 +10,7 @@ The installation and deployment system has been completely updated to remove har
 
 **Removed Hardcoded Values:**
 - ❌ Hardcoded database password (`Buck30488`)
-- ❌ Hardcoded log path (`/opt/bibleteacher/logs/django.log`)
+- ❌ Hardcoded log path (`/var/www/bibleteacher/logs/django.log`)
 - ❌ Hardcoded WSGI module path
 
 **Added Features:**

@@ -3,7 +3,7 @@
 # This is a template file. Replace the following placeholders:
 #   {{GUNICORN_SOCK}}   - Socket path (e.g., /run/gunicorn.sock)
 #   {{WORKERS}}         - Number of worker processes (e.g., 3)
-#   {{APP_DIR}}         - Application directory (e.g., /opt/bibleteacher)
+#   {{APP_DIR}}         - Application directory (e.g., /var/www/bibleteacher)
 #   {{APP_NAME}}        - Application name (e.g., bibleteacher)
 #
 # Installation:

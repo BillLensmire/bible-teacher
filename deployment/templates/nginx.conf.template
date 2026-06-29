@@ -2,7 +2,7 @@
 # 
 # This is a template file. Replace the following placeholders:
 #   {{DOMAIN}}          - Your domain name (e.g., bible.example.com) or use '_' for IP-only
-#   {{APP_DIR}}         - Application directory (e.g., /opt/bibleteacher)
+#   {{APP_DIR}}         - Application directory (e.g., /var/www/bibleteacher)
 #   {{GUNICORN_SOCK}}   - Gunicorn socket path (e.g., /run/gunicorn.sock)
 #
 # Installation:

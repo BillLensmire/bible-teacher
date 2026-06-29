@@ -74,13 +74,13 @@ sudo -u postgres psql bibleteacher
 
 ```bash
 # Django application log
-sudo tail -f /opt/bibleteacher/logs/django.log
+sudo tail -f /var/www/bibleteacher/logs/django.log
 
 # Gunicorn access log
-sudo tail -f /opt/bibleteacher/logs/gunicorn_access.log
+sudo tail -f /var/www/bibleteacher/logs/gunicorn_access.log
 
 # Gunicorn error log
-sudo tail -f /opt/bibleteacher/logs/gunicorn_error.log
+sudo tail -f /var/www/bibleteacher/logs/gunicorn_error.log
 
 # Nginx access log
 sudo tail -f /var/log/nginx/access.log
@@ -99,10 +99,10 @@ sudo tail -f /var/log/postgresql/postgresql-*-main.log
 
 ```bash
 # Search for errors in Django log
-sudo grep -i error /opt/bibleteacher/logs/django.log
+sudo grep -i error /var/www/bibleteacher/logs/django.log
 
 # Last 100 lines of Gunicorn errors
-sudo tail -n 100 /opt/bibleteacher/logs/gunicorn_error.log
+sudo tail -n 100 /var/www/bibleteacher/logs/gunicorn_error.log
 
 # Search systemd logs for specific date
 sudo journalctl -u bibleteacher.service --since "2024-01-01" --until "2024-01-02"
@@ -114,7 +114,7 @@ sudo journalctl -u bibleteacher.service --since "2024-01-01" --until "2024-01-02
 
 ```bash
 # Run as bibleteacher user
-cd /opt/bibleteacher
+cd /var/www/bibleteacher
 sudo -u bibleteacher venv/bin/python manage.py <command>
 
 # Create superuser
@@ -194,16 +194,16 @@ sudo -u postgres psql bibleteacher -c "SELECT * FROM auth_user;"
 
 ```bash
 # Set ownership
-sudo chown -R bibleteacher:bibleteacher /opt/bibleteacher
+sudo chown -R bibleteacher:bibleteacher /var/www/bibleteacher
 
 # Set directory permissions
-sudo chmod -R 755 /opt/bibleteacher
+sudo chmod -R 755 /var/www/bibleteacher
 
 # Set media directory permissions
-sudo chmod -R 775 /opt/bibleteacher/media
+sudo chmod -R 775 /var/www/bibleteacher/media
 
 # Set log directory permissions
-sudo chmod -R 775 /opt/bibleteacher/logs
+sudo chmod -R 775 /var/www/bibleteacher/logs
 
 # Ensure www-data can access socket
 sudo usermod -aG bibleteacher www-data
@@ -286,10 +286,10 @@ sudo ufw reset
 sudo systemctl stop bibleteacher.service
 
 # 2. Backup current version
-sudo cp -r /opt/bibleteacher /opt/bibleteacher.backup.$(date +%Y%m%d)
+sudo cp -r /var/www/bibleteacher /var/www/bibleteacher.backup.$(date +%Y%m%d)
 
 # 3. Pull new code (if using Git)
-cd /opt/bibleteacher
+cd /var/www/bibleteacher
 sudo -u bibleteacher git pull
 
 # 4. Update dependencies
@@ -315,8 +315,8 @@ sudo systemctl status bibleteacher.service
 sudo systemctl stop bibleteacher.service
 
 # Restore backup
-sudo rm -rf /opt/bibleteacher
-sudo mv /opt/bibleteacher.backup.YYYYMMDD /opt/bibleteacher
+sudo rm -rf /var/www/bibleteacher
+sudo mv /var/www/bibleteacher.backup.YYYYMMDD /var/www/bibleteacher
 
 # Start service
 sudo systemctl start bibleteacher.service
@@ -331,7 +331,7 @@ sudo systemctl start bibleteacher.service
 df -h
 
 # Directory size
-du -sh /opt/bibleteacher/*
+du -sh /var/www/bibleteacher/*
 
 # Memory usage
 free -h
@@ -404,11 +404,11 @@ sudo systemctl restart nginx
 
 ```bash
 # Recollect static files
-cd /opt/bibleteacher
+cd /var/www/bibleteacher
 sudo -u bibleteacher venv/bin/python manage.py collectstatic --noinput
 
 # Check permissions
-sudo chmod -R 755 /opt/bibleteacher/staticfiles
+sudo chmod -R 755 /var/www/bibleteacher/staticfiles
 
 # Check Nginx config
 sudo nginx -t
@@ -442,7 +442,7 @@ sudo systemctl restart postgresql
 
 ```bash
 # Edit gunicorn config
-sudo nano /opt/bibleteacher/gunicorn_conf.py
+sudo nano /var/www/bibleteacher/gunicorn_conf.py
 
 # Change workers value (recommended: 2-4 x CPU cores)
 workers = 5
@@ -454,7 +454,7 @@ sudo systemctl restart bibleteacher.service
 ### Clear Django Cache
 
 ```bash
-cd /opt/bibleteacher
+cd /var/www/bibleteacher
 sudo -u bibleteacher venv/bin/python manage.py shell
 
 # In Python shell:
@@ -470,7 +470,7 @@ exit()
 sudo systemctl restart bibleteacher.service && sudo systemctl reload nginx
 
 # View all logs in real-time
-sudo tail -f /opt/bibleteacher/logs/*.log /var/log/nginx/*.log
+sudo tail -f /var/www/bibleteacher/logs/*.log /var/log/nginx/*.log
 
 # Check all service statuses
 sudo systemctl status bibleteacher.service nginx postgresql
@@ -483,5 +483,5 @@ curl -I http://localhost
 
 # Quick backup
 sudo -u postgres pg_dump bibleteacher > ~/backup_$(date +%Y%m%d_%H%M%S).sql && \
-sudo tar -czf ~/media_backup_$(date +%Y%m%d_%H%M%S).tar.gz /opt/bibleteacher/media/
+sudo tar -czf ~/media_backup_$(date +%Y%m%d_%H%M%S).tar.gz /var/www/bibleteacher/media/
 ```

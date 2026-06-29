@@ -20,7 +20,7 @@ jobs:
             set -e
             echo "=== Starting deployment at $(date) ==="
 
-            cd /opt/bibleteacher
+            cd /var/www/bibleteacher
 
             echo "[1/5] Pulling latest code..."
             sudo -u bibleteacher git pull origin main

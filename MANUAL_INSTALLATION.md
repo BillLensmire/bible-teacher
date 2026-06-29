@@ -1,41 +1,37 @@
-# Bible Teacher - Manual Installation Guide
+## Bible Teacher - Manual Installation Guide
 
 This guide provides step-by-step instructions for manually installing the Bible Teacher application on a Linux server (Ubuntu 20.04+ or Debian 11+).
 
 ## Table of Contents
 
-1. [Prerequisites](#prerequisites)
-2. [System Preparation](#system-preparation)
-3. [Database Setup](#database-setup)
-4. [Application Setup](#application-setup)
-5. [Web Server Configuration](#web-server-configuration)
-6. [SSL/TLS Setup](#ssltls-setup)
-7. [Troubleshooting](#troubleshooting)
-8. [Maintenance](#maintenance)
-
----
+1.  [Prerequisites](#prerequisites)
+2.  [System Preparation](#system-preparation)
+3.  [Database Setup](#database-setup)
+4.  [Application Setup](#application-setup)
+5.  [Web Server Configuration](#web-server-configuration)
+6.  [SSL/TLS Setup](#ssltls-setup)
+7.  [Troubleshooting](#troubleshooting)
+8.  [Maintenance](#maintenance)
 
 ## Prerequisites
 
-- Fresh Ubuntu 20.04+ or Debian 11+ server
-- Root or sudo access
-- Domain name (optional, but recommended for SSL)
-- At least 1GB RAM and 10GB disk space
-
----
+*   Fresh Ubuntu 20.04+ or Debian 11+ server
+*   Root or sudo access
+*   Domain name (optional, but recommended for SSL)
+*   At least 1GB RAM and 10GB disk space
 
 ## System Preparation
 
-### 1. Update System Packages
+### 1\. Update System Packages
 
-```bash
+```plaintext
 sudo apt update
 sudo apt upgrade -y
 ```
 
-### 2. Install Required System Packages
+### 2\. Install Required System Packages
 
-```bash
+```plaintext
 sudo apt install -y \
     python3 \
     python3-venv \
@@ -55,34 +51,32 @@ sudo apt install -y \
     fail2ban
 ```
 
-### 3. Create Application User
+### 3\. Create Application User
 
-```bash
+```plaintext
 sudo useradd --system --no-create-home --shell /bin/bash --group bibleteacher bibleteacher
 ```
 
----
-
 ## Database Setup
 
-### 1. Start PostgreSQL Service
+### 1\. Start PostgreSQL Service
 
-```bash
+```plaintext
 sudo systemctl start postgresql
 sudo systemctl enable postgresql
 ```
 
-### 2. Create Database and User
+### 2\. Create Database and User
 
-```bash
+```plaintext
 sudo -u postgres psql
 ```
 
 In the PostgreSQL prompt:
 
-```sql
+```plaintext
 CREATE DATABASE bibleteacher;
-CREATE USER bibleuser WITH PASSWORD 'YOUR_SECURE_PASSWORD_HERE';
+CREATE USER bibleuser WITH PASSWORD 'Buck30488';
 GRANT ALL PRIVILEGES ON DATABASE bibleteacher TO bibleuser;
 \c bibleteacher
 GRANT ALL ON SCHEMA public TO bibleuser;
@@ -91,22 +85,20 @@ GRANT ALL ON SCHEMA public TO bibleuser;
 
 **Important:** Replace `YOUR_SECURE_PASSWORD_HERE` with a strong password. Save this password securely.
 
----
-
 ## Application Setup
 
-### 1. Create Application Directory
+### 1\. Create Application Directory
 
-```bash
-sudo mkdir -p /opt/bibleteacher
-cd /opt/bibleteacher
+```plaintext
+sudo mkdir -p /var/www/bibleteacher
+cd /var/www/bibleteacher
 ```
 
-### 2. Copy Application Files
+### 2\. Copy Application Files
 
 If you have the application files on your local machine, upload them:
 
-```bash
+```plaintext
 # From your local machine
 scp -r /path/to/bible-teacher/* user@your-server:/tmp/bibleteacher/
 
@@ -114,41 +106,41 @@ scp -r /path/to/bible-teacher/* user@your-server:/tmp/bibleteacher/
 sudo rsync -a --exclude='venv' --exclude='__pycache__' \
            --exclude='media' --exclude='staticfiles' \
            --exclude='.git' --exclude='*.pyc' \
-           /tmp/bibleteacher/ /opt/bibleteacher/
+           /tmp/bibleteacher/ /var/www/bibleteacher/
 ```
 
 Or clone from Git repository:
 
-```bash
-sudo git clone https://github.com/yourusername/bible-teacher.git /opt/bibleteacher
+```plaintext
+sudo git clone https://github.com/BillLensmire/bible-teacher.git /var/www/bibleteacher
 ```
 
-### 3. Create Required Directories
+### 3\. Create Required Directories
 
-```bash
-sudo mkdir -p /opt/bibleteacher/media/sermons
-sudo mkdir -p /opt/bibleteacher/media/sermon_notes
-sudo mkdir -p /opt/bibleteacher/staticfiles
-sudo mkdir -p /opt/bibleteacher/logs
+```plaintext
+sudo mkdir -p /var/www/bibleteacher/media/sermons
+sudo mkdir -p /var/www/bibleteacher/media/sermon_notes
+sudo mkdir -p /var/www/bibleteacher/staticfiles
+sudo mkdir -p /var/www/bibleteacher/logs
 ```
 
-### 4. Set Up Python Virtual Environment
+### 4\. Set Up Python Virtual Environment
 
-```bash
-cd /opt/bibleteacher
+```plaintext
+cd /var/www/bibleteacher
 sudo -u bibleteacher python3 -m venv venv
 sudo -u bibleteacher venv/bin/pip install --upgrade pip setuptools wheel
 ```
 
-### 5. Install Python Dependencies
+### 5\. Install Python Dependencies
 
-```bash
+```plaintext
 sudo -u bibleteacher venv/bin/pip install -r requirements.txt
 ```
 
 If `requirements.txt` is missing, install manually:
 
-```bash
+```plaintext
 sudo -u bibleteacher venv/bin/pip install \
     Django==6.0.6 \
     psycopg2-binary \
@@ -161,12 +153,12 @@ sudo -u bibleteacher venv/bin/pip install \
     gunicorn
 ```
 
-### 6. Configure Django Settings
+### 6\. Configure Django Settings
 
 Edit the settings file:
 
-```bash
-sudo nano /opt/bibleteacher/bibleteacher/settings.py
+```plaintext
+sudo nano /var/www/bibleteacher/bibleteacher/settings.py
 ```
 
 Update the following settings:
@@ -194,8 +186,8 @@ DATABASES = {
 }
 
 # Static and media files
-STATIC_ROOT = '/opt/bibleteacher/staticfiles'
-MEDIA_ROOT = '/opt/bibleteacher/media'
+STATIC_ROOT = '/var/www/bibleteacher/staticfiles'
+MEDIA_ROOT = '/var/www/bibleteacher/media'
 
 # Security settings (add at the end of the file)
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
@@ -209,40 +201,38 @@ SESSION_COOKIE_SECURE = True  # Only if using HTTPS
 CSRF_COOKIE_SECURE = True     # Only if using HTTPS
 ```
 
-### 7. Run Django Migrations
+### 7\. Run Django Migrations
 
-```bash
-cd /opt/bibleteacher
+```plaintext
+cd /var/www/bibleteacher
 sudo -u bibleteacher venv/bin/python manage.py migrate
 sudo -u bibleteacher venv/bin/python manage.py collectstatic --noinput
 sudo -u bibleteacher venv/bin/python manage.py createcachetable bible_cache_table
 ```
 
-### 8. Create Django Superuser
+### 8\. Create Django Superuser
 
-```bash
+```plaintext
 sudo -u bibleteacher venv/bin/python manage.py createsuperuser
 ```
 
-### 9. Set Correct Permissions
+### 9\. Set Correct Permissions
 
-```bash
-sudo chown -R bibleteacher:bibleteacher /opt/bibleteacher
-sudo chmod -R 755 /opt/bibleteacher
-sudo chmod -R 775 /opt/bibleteacher/media
-sudo chmod -R 775 /opt/bibleteacher/logs
+```plaintext
+sudo chown -R bibleteacher:bibleteacher /var/www/bibleteacher
+sudo chmod -R 755 /var/www/bibleteacher
+sudo chmod -R 775 /var/www/bibleteacher/media
+sudo chmod -R 775 /var/www/bibleteacher/logs
 ```
-
----
 
 ## Web Server Configuration
 
-### 1. Create Gunicorn Configuration
+### 1\. Create Gunicorn Configuration
 
-Create `/opt/bibleteacher/gunicorn_conf.py`:
+Create `/var/www/bibleteacher/gunicorn_conf.py`:
 
-```bash
-sudo nano /opt/bibleteacher/gunicorn_conf.py
+```plaintext
+sudo nano /var/www/bibleteacher/gunicorn_conf.py
 ```
 
 Add the following content:
@@ -258,28 +248,28 @@ keepalive = 5
 max_requests = 1000
 max_requests_jitter = 50
 loglevel = 'info'
-accesslog = '/opt/bibleteacher/logs/gunicorn_access.log'
-errorlog = '/opt/bibleteacher/logs/gunicorn_error.log'
+accesslog = '/var/www/bibleteacher/logs/gunicorn_access.log'
+errorlog = '/var/www/bibleteacher/logs/gunicorn_error.log'
 proc_name = 'bibleteacher'
 ```
 
 Set ownership:
 
-```bash
-sudo chown bibleteacher:bibleteacher /opt/bibleteacher/gunicorn_conf.py
+```plaintext
+sudo chown bibleteacher:bibleteacher /var/www/bibleteacher/gunicorn_conf.py
 ```
 
-### 2. Create Systemd Socket File
+### 2\. Create Systemd Socket File
 
 Create `/etc/systemd/system/bibleteacher.socket`:
 
-```bash
+```plaintext
 sudo nano /etc/systemd/system/bibleteacher.socket
 ```
 
 Add:
 
-```ini
+```plaintext
 [Unit]
 Description=Gunicorn socket for bibleteacher
 
@@ -293,17 +283,17 @@ SocketMode=0660
 WantedBy=sockets.target
 ```
 
-### 3. Create Systemd Service File
+### 3\. Create Systemd Service File
 
 Create `/etc/systemd/system/bibleteacher.service`:
 
-```bash
+```plaintext
 sudo nano /etc/systemd/system/bibleteacher.service
 ```
 
 Add:
 
-```ini
+```plaintext
 [Unit]
 Description=Gunicorn daemon for bibleteacher
 Requires=bibleteacher.socket
@@ -313,9 +303,9 @@ After=network.target postgresql.service
 Type=notify
 User=bibleteacher
 Group=bibleteacher
-WorkingDirectory=/opt/bibleteacher
-ExecStart=/opt/bibleteacher/venv/bin/gunicorn \
-          --config /opt/bibleteacher/gunicorn_conf.py \
+WorkingDirectory=/var/www/bibleteacher
+ExecStart=/var/www/bibleteacher/venv/bin/gunicorn \
+          --config /var/www/bibleteacher/gunicorn_conf.py \
           bibleteacher.wsgi:application
 ExecReload=/bin/kill -s HUP $MAINPID
 KillMode=mixed
@@ -328,9 +318,9 @@ RestartSec=5
 WantedBy=multi-user.target
 ```
 
-### 4. Enable and Start Gunicorn
+### 4\. Enable and Start Gunicorn
 
-```bash
+```plaintext
 sudo systemctl daemon-reload
 sudo systemctl enable bibleteacher.socket
 sudo systemctl enable bibleteacher.service
@@ -340,21 +330,21 @@ sudo systemctl start bibleteacher.service
 
 Verify it's running:
 
-```bash
+```plaintext
 sudo systemctl status bibleteacher.service
 ```
 
-### 5. Configure Nginx
+### 5\. Configure Nginx
 
 Create `/etc/nginx/sites-available/bibleteacher`:
 
-```bash
+```plaintext
 sudo nano /etc/nginx/sites-available/bibleteacher
 ```
 
 Add (replace `your-domain.com` with your actual domain or use `_` for IP-only access):
 
-```nginx
+```plaintext
 server {
     listen 80;
     listen [::]:80;
@@ -370,7 +360,7 @@ server {
 
     # Static files
     location /static/ {
-        alias /opt/bibleteacher/staticfiles/;
+        alias /var/www/bibleteacher/staticfiles/;
         expires 30d;
         add_header Cache-Control "public, immutable";
     }
@@ -416,9 +406,9 @@ server {
 }
 ```
 
-### 6. Enable Nginx Site
+### 6\. Enable Nginx Site
 
-```bash
+```plaintext
 # Remove default site
 sudo rm -f /etc/nginx/sites-enabled/default
 
@@ -433,50 +423,46 @@ sudo systemctl restart nginx
 sudo systemctl enable nginx
 ```
 
-### 7. Add www-data to Application Group
+### 7\. Add www-data to Application Group
 
-```bash
+```plaintext
 sudo usermod -aG bibleteacher www-data
 ```
 
----
-
 ## SSL/TLS Setup
 
-### 1. Install Certbot
+### 1\. Install Certbot
 
-```bash
+```plaintext
 sudo apt install -y certbot python3-certbot-nginx
 ```
 
-### 2. Obtain SSL Certificate
+### 2\. Obtain SSL Certificate
 
-```bash
+```plaintext
 sudo certbot --nginx -d your-domain.com -d www.your-domain.com
 ```
 
 Follow the prompts and select option 2 to redirect HTTP to HTTPS.
 
-### 3. Enable Auto-Renewal
+### 3\. Enable Auto-Renewal
 
-```bash
+```plaintext
 sudo systemctl enable certbot.timer
 sudo systemctl start certbot.timer
 ```
 
 Test renewal:
 
-```bash
+```plaintext
 sudo certbot renew --dry-run
 ```
 
----
-
 ## Firewall Configuration
 
-### 1. Configure UFW
+### 1\. Configure UFW
 
-```bash
+```plaintext
 # Allow SSH
 sudo ufw allow OpenSSH
 
@@ -487,19 +473,17 @@ sudo ufw allow 'Nginx Full'
 sudo ufw enable
 ```
 
-### 2. Verify Firewall Status
+### 2\. Verify Firewall Status
 
-```bash
+```plaintext
 sudo ufw status verbose
 ```
-
----
 
 ## Troubleshooting
 
 ### Check Service Status
 
-```bash
+```plaintext
 # Gunicorn
 sudo systemctl status bibleteacher.service
 sudo journalctl -u bibleteacher.service -f
@@ -514,11 +498,11 @@ sudo systemctl status postgresql
 
 ### Check Logs
 
-```bash
+```plaintext
 # Application logs
-sudo tail -f /opt/bibleteacher/logs/django.log
-sudo tail -f /opt/bibleteacher/logs/gunicorn_error.log
-sudo tail -f /opt/bibleteacher/logs/gunicorn_access.log
+sudo tail -f /var/www/bibleteacher/logs/django.log
+sudo tail -f /var/www/bibleteacher/logs/gunicorn_error.log
+sudo tail -f /var/www/bibleteacher/logs/gunicorn_access.log
 
 # Nginx logs
 sudo tail -f /var/log/nginx/error.log
@@ -527,9 +511,9 @@ sudo tail -f /var/log/nginx/access.log
 
 ### Common Issues
 
-#### 1. Gunicorn Socket Not Found
+#### 1\. Gunicorn Socket Not Found
 
-```bash
+```plaintext
 # Check socket exists
 ls -l /run/gunicorn.sock
 
@@ -538,23 +522,23 @@ sudo systemctl restart bibleteacher.socket
 sudo systemctl restart bibleteacher.service
 ```
 
-#### 2. Permission Denied Errors
+#### 2\. Permission Denied Errors
 
-```bash
+```plaintext
 # Fix ownership
-sudo chown -R bibleteacher:bibleteacher /opt/bibleteacher
-sudo chmod -R 755 /opt/bibleteacher
-sudo chmod -R 775 /opt/bibleteacher/media
-sudo chmod -R 775 /opt/bibleteacher/logs
+sudo chown -R bibleteacher:bibleteacher /var/www/bibleteacher
+sudo chmod -R 755 /var/www/bibleteacher
+sudo chmod -R 775 /var/www/bibleteacher/media
+sudo chmod -R 775 /var/www/bibleteacher/logs
 
 # Ensure www-data can access socket
 sudo usermod -aG bibleteacher www-data
 sudo systemctl restart nginx
 ```
 
-#### 3. Database Connection Errors
+#### 3\. Database Connection Errors
 
-```bash
+```plaintext
 # Test PostgreSQL connection
 sudo -u postgres psql -c "SELECT 1"
 
@@ -565,35 +549,33 @@ sudo -u postgres psql -l | grep bibleteacher
 sudo -u postgres psql -c "\du bibleuser"
 ```
 
-#### 4. Static Files Not Loading
+#### 4\. Static Files Not Loading
 
-```bash
+```plaintext
 # Recollect static files
-cd /opt/bibleteacher
+cd /var/www/bibleteacher
 sudo -u bibleteacher venv/bin/python manage.py collectstatic --noinput
 
 # Check permissions
-sudo chmod -R 755 /opt/bibleteacher/staticfiles
+sudo chmod -R 755 /var/www/bibleteacher/staticfiles
 ```
-
----
 
 ## Maintenance
 
 ### Update Application Code
 
-```bash
+```plaintext
 # Stop service
 sudo systemctl stop bibleteacher.service
 
 # Pull latest code (if using Git)
-cd /opt/bibleteacher
+cd /var/www/bibleteacher
 sudo -u bibleteacher git pull
 
 # Or copy new files
 sudo rsync -a --exclude='venv' --exclude='media' \
            --exclude='staticfiles' --exclude='*.pyc' \
-           /path/to/new/files/ /opt/bibleteacher/
+           /path/to/new/files/ /var/www/bibleteacher/
 
 # Update dependencies
 sudo -u bibleteacher venv/bin/pip install -r requirements.txt
@@ -610,22 +592,22 @@ sudo systemctl start bibleteacher.service
 
 ### Database Backup
 
-```bash
+```plaintext
 # Create backup
-sudo -u postgres pg_dump bibleteacher > backup_$(date +%Y%m%d_%H%M%S).sql
+sudo -u postgres pg_dump bibleteacher &gt; backup_$(date +%Y%m%d_%H%M%S).sql
 
 # Restore backup
-sudo -u postgres psql bibleteacher < backup_file.sql
+sudo -u postgres psql bibleteacher &lt; backup_file.sql
 ```
 
 ### View Application Logs
 
-```bash
+```plaintext
 # Real-time Django logs
-sudo tail -f /opt/bibleteacher/logs/django.log
+sudo tail -f /var/www/bibleteacher/logs/django.log
 
 # Real-time Gunicorn logs
-sudo tail -f /opt/bibleteacher/logs/gunicorn_error.log
+sudo tail -f /var/www/bibleteacher/logs/gunicorn_error.log
 
 # Service logs
 sudo journalctl -u bibleteacher.service -f
@@ -633,7 +615,7 @@ sudo journalctl -u bibleteacher.service -f
 
 ### Restart Services
 
-```bash
+```plaintext
 # Restart application
 sudo systemctl restart bibleteacher.service
 
@@ -644,41 +626,43 @@ sudo systemctl reload nginx
 sudo systemctl restart postgresql
 ```
 
----
-
 ## Security Recommendations
 
-1. **Keep system updated:**
-   ```bash
-   sudo apt update && sudo apt upgrade -y
-   ```
+**Keep system updated:**
 
-2. **Configure fail2ban:**
-   ```bash
-   sudo systemctl enable fail2ban
-   sudo systemctl start fail2ban
-   ```
+**Configure fail2ban:**
 
-3. **Regular backups:**
-   - Database backups daily
-   - Media files backups weekly
-   - Store backups off-server
+**Regular backups:**
 
-4. **Monitor logs regularly:**
-   - Check for unauthorized access attempts
-   - Monitor application errors
-   - Review Nginx access logs
+*   Database backups daily
+*   Media files backups weekly
+*   Store backups off-server
 
-5. **Use strong passwords:**
-   - Database passwords
-   - Django admin passwords
-   - Server SSH keys (disable password auth)
+**Monitor logs regularly:**
 
----
+*   Check for unauthorized access attempts
+*   Monitor application errors
+*   Review Nginx access logs
+
+**Use strong passwords:**
+
+*   Database passwords
+*   Django admin passwords
+*   Server SSH keys (disable password auth)
 
 ## Support
 
 For issues or questions:
-- Check the logs in `/opt/bibleteacher/logs/`
-- Review Django documentation: https://docs.djangoproject.com/
-- Check Nginx documentation: https://nginx.org/en/docs/
+
+*   Check the logs in `/var/www/bibleteacher/logs/`
+*   Review Django documentation: https://docs.djangoproject.com/
+*   Check Nginx documentation: https://nginx.org/en/docs/
+
+```plaintext
+sudo systemctl enable fail2ban
+sudo systemctl start fail2ban
+```
+
+```plaintext
+sudo apt update &amp;&amp; sudo apt upgrade -y
+```

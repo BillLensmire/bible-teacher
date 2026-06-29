@@ -4,7 +4,8 @@ from . import views
 app_name = 'reader'
 
 urlpatterns = [
-    path('', views.bible_reader, name='bible_reader'),
+    path('', views.SermonListView.as_view(), name='sermon_list'),
+    path('bible/', views.bible_reader, name='bible_reader'),
     path('<str:book>/<int:chapter>/', views.bible_reader, name='bible_reader_chapter'),
     path('sermons/', views.SermonListView.as_view(), name='sermon_list'),
     path('notes/', views.SermonNotesListView.as_view(), name='sermon_notes_list'),

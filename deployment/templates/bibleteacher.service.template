@@ -2,10 +2,10 @@
 #
 # This is a template file. Replace the following placeholders:
 #   {{APP_NAME}}        - Application name (e.g., bibleteacher)
-#   {{APP_USER}}        - Application user (e.g., bibleteacher)
-#   {{APP_GROUP}}       - Application group (e.g., bibleteacher)
-#   {{APP_DIR}}         - Application directory (e.g., /opt/bibleteacher)
-#   {{VENV_DIR}}        - Virtual environment directory (e.g., /opt/bibleteacher/venv)
+#   {{APP_USER}}        - Application user (e.g., www-data)
+#   {{APP_GROUP}}       - Application group (e.g., www-data)
+#   {{APP_DIR}}         - Application directory (e.g., /var/www/bibleteacher)
+#   {{VENV_DIR}}        - Virtual environment directory (e.g., /var/www/bibleteacher/venv)
 #
 # Installation:
 #   1. Copy this file to /etc/systemd/system/{{APP_NAME}}.service

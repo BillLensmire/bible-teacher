@@ -140,6 +140,9 @@ CACHES = {
 BIBLE_API_KEY = os.environ.get('BIBLE_API_KEY', '')
 DEFAULT_BIBLE_VERSION = os.environ.get('DEFAULT_BIBLE_VERSION', 'de4e12af7f28f599-02')
 
+ENABLE_BIBLE_STUDY_PAGE = os.environ.get('ENABLE_BIBLE_STUDY_PAGE', 'False').lower() == 'true'
+ENABLE_SERMON_NOTES_PAGE = os.environ.get('ENABLE_SERMON_NOTES_PAGE', 'False').lower() == 'true'
+
 # Production security settings (active when DEBUG=False)
 if not DEBUG:
     SECURE_SSL_REDIRECT = os.environ.get('DJANGO_SECURE_SSL_REDIRECT', 'True').lower() == 'true'
