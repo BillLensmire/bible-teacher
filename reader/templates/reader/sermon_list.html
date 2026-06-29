@@ -36,8 +36,9 @@
             
             <div>
                 <label class="block text-sm font-medium mb-1">Search</label>
-                <input type="text" name="search" value="{{ request.GET.search }}" 
-                       placeholder="Search sermons..." class="w-full border rounded px-3 py-2">
+                <input type="text" name="search" value="{{ request.GET.search }}"
+                       placeholder="Search sermons..." class="w-full border rounded px-3 py-2"
+                       oninput="if(!this.value) this.form.submit()">
             </div>
             
         </form>
