@@ -11,9 +11,9 @@
     <div class="bg-white rounded-lg shadow p-4 mb-6">
         <form method="get" class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-                <label class="block text-sm font-medium mb-1">Pastor</label>
+                <label class="block text-sm font-medium mb-1">Teacher</label>
                 <select name="pastor" class="w-full border rounded px-3 py-2" onchange="this.form.submit()">
-                    <option value="">All Pastors</option>
+                    <option value="">All Teachers</option>
                     {% for pastor in pastors %}
                     <option value="{{ pastor.id }}" {% if request.GET.pastor == pastor.id|stringformat:"s" %}selected{% endif %}>
                         {{ pastor.name }}

@@ -9,6 +9,12 @@ from .models import (
 )
 from .services.bible_api import BIBLE_BOOKS
 
+# Override verbose names at runtime to avoid database migrations
+Pastor._meta.verbose_name = 'Teacher'
+Pastor._meta.verbose_name_plural = 'Teachers'
+PastorNote._meta.verbose_name = 'Teacher Note'
+PastorNote._meta.verbose_name_plural = 'Teacher Notes'
+
 
 class SermonPassageForm(forms.ModelForm):
     book = forms.ChoiceField(
