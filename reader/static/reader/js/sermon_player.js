@@ -31,7 +31,6 @@ class SermonPlayer {
                 this.pendingPosition = data.position;
                 this.updateProgressDisplay();
                 this.applyPendingPosition();
-                this.showResumeNotification(data.position);
             } else {
                 console.log('[SermonPlayer] No saved progress or position is 0');
             }
@@ -65,23 +64,6 @@ class SermonPlayer {
         } else {
             console.log('[SermonPlayer] Audio not ready, waiting for canplay...');
         }
-    }
-
-    showResumeNotification(position) {
-        const minutes = Math.floor(position / 60);
-        const seconds = Math.floor(position % 60);
-        const timeStr = `${minutes}:${seconds.toString().padStart(2, '0')}`;
-        
-        const notification = document.createElement('div');
-        notification.className = 'fixed top-4 right-4 bg-blue-600 text-white px-4 py-2 rounded shadow-lg z-50';
-        notification.textContent = `Resuming from ${timeStr}`;
-        document.body.appendChild(notification);
-        
-        setTimeout(() => {
-            notification.style.opacity = '0';
-            notification.style.transition = 'opacity 0.5s';
-            setTimeout(() => notification.remove(), 500);
-        }, 3000);
     }
 
     attachEventListeners() {
