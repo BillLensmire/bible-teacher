@@ -54,6 +54,7 @@ class Sermon(models.Model):
     pastor = models.ForeignKey(Pastor, on_delete=models.CASCADE, related_name='sermons')
     audio_file = models.FileField(
         upload_to='sermons/',
+        max_length=255,
         validators=[FileExtensionValidator(allowed_extensions=['mp3', 'wav', 'ogg', 'm4a'])]
     )
     audio_duration = models.DurationField(null=True, blank=True)

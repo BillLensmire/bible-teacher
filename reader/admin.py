@@ -123,6 +123,9 @@ class SermonAdmin(admin.ModelAdmin):
         }),
     )
 
+    class Media:
+        js = ['admin/js/sermon_admin.js']
+
 
 @admin.register(SermonPassage)
 class SermonPassageAdmin(admin.ModelAdmin):
