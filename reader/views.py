@@ -11,7 +11,7 @@ from .models import (
 )
 import json
 from .services import BibleAPIService
-from .services.bible_api import sanitize_html
+from .services.bible_api import sanitize_html, BIBLE_BOOK_CHAPTERS, MAX_VERSE_FALLBACK
 import logging
 import re
 
@@ -165,14 +165,20 @@ def get_book_chapters(request, book):
     try:
         bible_service = BibleAPIService()
         book_id = bible_service.get_book_id_from_name(book, version_id)
-        if not book_id:
-            return JsonResponse({'error': 'Book not found'}, status=404)
-        chapters = bible_service.get_chapters(book_id, version_id)
-        chapter_numbers = sorted([int(c['number']) for c in chapters if c['number'].isdigit()])
-        return JsonResponse({'chapters': chapter_numbers})
+        if book_id:
+            chapters = bible_service.get_chapters(book_id, version_id)
+            if chapters:
+                chapter_numbers = sorted([int(c['number']) for c in chapters if c['number'].isdigit()])
+                return JsonResponse({'chapters': chapter_numbers})
     except Exception as e:
-        logger.error(f"Error fetching book chapters: {e}")
-        return JsonResponse({'error': 'An error occurred'}, status=500)
+        logger.warning(f"Bible API failed for book chapters, using fallback: {e}")
+
+    # Fallback to local data so the sermon upload form works even when the external API is unavailable
+    chapter_count = BIBLE_BOOK_CHAPTERS.get(book)
+    if chapter_count:
+        return JsonResponse({'chapters': list(range(1, chapter_count + 1))})
+
+    return JsonResponse({'error': 'Book not found'}, status=404)
 
 
 def get_chapter_verses(request, book, chapter):
@@ -184,15 +190,19 @@ def get_chapter_verses(request, book, chapter):
     try:
         bible_service = BibleAPIService()
         book_id = bible_service.get_book_id_from_name(book, version_id)
-        if not book_id:
-            return JsonResponse({'error': 'Book not found'}, status=404)
-        verse_count = bible_service.get_chapter_verse_count(book_id, chapter, version_id)
-        if verse_count is None:
-            return JsonResponse({'error': 'Chapter not found'}, status=404)
-        return JsonResponse({'verses': list(range(1, verse_count + 1))})
+        if book_id:
+            verse_count = bible_service.get_chapter_verse_count(book_id, chapter, version_id)
+            if verse_count:
+                return JsonResponse({'verses': list(range(1, verse_count + 1))})
     except Exception as e:
-        logger.error(f"Error fetching chapter verses: {e}")
-        return JsonResponse({'error': 'An error occurred'}, status=500)
+        logger.warning(f"Bible API failed for chapter verses, using fallback: {e}")
+
+    # Fallback so the sermon upload form works even when the external API is unavailable
+    chapter_count = BIBLE_BOOK_CHAPTERS.get(book)
+    if chapter_count and 1 <= int(chapter) <= chapter_count:
+        return JsonResponse({'verses': list(range(1, MAX_VERSE_FALLBACK + 1))})
+
+    return JsonResponse({'error': 'Book or chapter not found'}, status=404)
 
 
 def get_chapter_notes(request, book, chapter):
