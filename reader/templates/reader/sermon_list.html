@@ -1,5 +1,6 @@
 {% extends 'reader/base.html' %}
 {% load static %}
+{% load reader_filters %}
 
 {% block title %}Sermons - Bible Teacher{% endblock %}
 
@@ -50,11 +51,11 @@
         <div class="bg-white rounded-lg shadow p-6">
             <div class="flex justify-between items-start">
                 <div class="flex-1">
-                    <h3 class="text-xl font-bold mb-2">{{ sermon.title }}</h3>
-                    <p class="text-gray-600 mb-2">{{ sermon.pastor.name }} - {{ sermon.date_preached }}</p>
+                    <h3 class="text-xl font-bold mb-1">{{ sermon.title }}</h3>
+                    <p class="text-gray-600 mb-1">{{ sermon.audio_duration|format_duration }} - {{ sermon.pastor.name }} - {{ sermon.date_preached|date:"m/d/y" }}</p>
                     
                     {% if sermon.passages.all %}
-                    <div class="mb-2">
+                    <div class="mb-1">
                         <span class="text-sm font-medium">Passages:</span>
                         {% for passage in sermon.passages.all %}
                         <span class="inline-block bg-blue-100 text-blue-800 text-sm px-2 py-1 rounded mr-2">
@@ -65,7 +66,7 @@
                     {% endif %}
                     
                     {% if sermon.groups.all %}
-                    <div class="mb-2">
+                    <div class="mb-1">
                         {% for group in sermon.groups.all %}
                         <span class="inline-block bg-gray-200 text-gray-800 text-xs px-2 py-1 rounded mr-1">
                             {{ group.name }}
@@ -75,16 +76,10 @@
                     {% endif %}
                     
                     {% if sermon.description %}
-                    <p class="text-gray-700 mt-2">{{ sermon.description|truncatewords:30 }}</p>
+                    <p class="text-gray-700 mt-1">{{ sermon.description|truncatewords:30 }}</p>
                     {% endif %}
                 </div>
-                
-                <div class="ml-4">
-                    {% if sermon.audio_duration %}
-                    <span class="text-sm text-gray-600">{{ sermon.audio_duration }}</span>
-                    {% endif %}
-                </div>
-            </div>
+        </div>
             
             <div class="mt-4">
                 <audio controls preload="metadata" class="w-full" data-sermon-id="{{ sermon.id }}">
