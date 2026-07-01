@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token }}">
-    <title>{% block title %}Bible Teacher{% endblock %}</title>
+    <title>{% block title %}Lake Country Bible Church - Bible Teacher{% endblock %}</title>
     <script src="https://cdn.tailwindcss.com"></script>
     {% block extra_head %}{% endblock %}
 </head>
@@ -16,7 +16,7 @@
                     {% if ENABLE_BIBLE_STUDY_PAGE %}
                     <a href="{% url 'reader:bible_reader' %}" class="text-xl font-bold">Bible Teacher</a>
                     {% else %}
-                    <a href="{% url 'reader:sermon_list' %}" class="text-xl font-bold">Bible Teacher</a>
+                    <a href="{% url 'reader:sermon_list' %}" class="text-xl font-bold">Lake Country Bible Church</a>
                     {% endif %}
                     <div class="hidden md:flex space-x-4">
                         {% if ENABLE_BIBLE_STUDY_PAGE %}
